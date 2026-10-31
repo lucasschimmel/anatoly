@@ -128,3 +128,5 @@ values or PEM contents are exported.
 The shared scan options also apply to live modes; see [MODES.md](MODES.md) for mode-specific semantics and restrictions.
 
 Version 0.2.0 adds -H/--header, --header-env, --basic-auth-env, --resolve, --wordlist, --waf-probe, --csv and --sarif. See [Audit controls](AUDIT-CONTROLS.md) for scope, privacy, budgets and examples.
+
+Version 0.2.1: --builtin-wordlist activates the embedded 24-path core list without external files. Default cap: 32 requests, unless --max-requests is explicit. Can be combined with --wordlist; rejects quick/no-discover.

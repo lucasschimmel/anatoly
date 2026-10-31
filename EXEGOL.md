@@ -10,9 +10,9 @@ Use a source build if your container does not meet these requirements.
 Run these commands **inside your Exegol container**, not on the host:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.1/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.2.0 --bin-dir "$HOME/.local/bin"
+sh /tmp/anatoly-install.sh --version v0.2.1 --bin-dir "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly doctor https://app.example/ --no-proxy --json
@@ -29,7 +29,7 @@ Exegol mounts your configured host `my-resources` directory inside containers at
 `/opt/my-resources`. With that share enabled, install the binary there:
 
 ```sh
-sh /tmp/anatoly-install.sh --version v0.2.0 --bin-dir /opt/my-resources/bin
+sh /tmp/anatoly-install.sh --version v0.2.1 --bin-dir /opt/my-resources/bin
 export PATH="/opt/my-resources/bin:$PATH"
 anatoly --version
 ```
