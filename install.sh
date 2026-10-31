@@ -3,7 +3,7 @@
 set -eu
 
 REPOSITORY=lucasschimmel/anatoly
-VERSION=v0.2.0
+VERSION=v0.2.1
 BIN_DIR=${HOME:?HOME must be set}/.local/bin
 FORCE=0
 
@@ -12,7 +12,7 @@ usage() {
     cat <<'EOF'
 Usage: sh install.sh [--version vX.Y.Z] [--bin-dir DIRECTORY] [--force]
 
-Default release: v0.2.0. Default directory: $HOME/.local/bin.
+Default release: v0.2.1. Default directory: $HOME/.local/bin.
 Supports Linux x86_64 and ARM64 with glibc >= 2.35 and OpenSSL 3.
 No sudo, shell startup modifications, or scans are performed.
 Existing binaries are preserved unless --force is supplied.
@@ -29,7 +29,7 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-printf '%s\n' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || fail 'Use a stable version tag such as v0.2.0'
+printf '%s\n' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || fail 'Use a stable version tag such as v0.2.1'
 [ -n "$BIN_DIR" ] || fail 'The installation directory must not be empty'
 case "$BIN_DIR" in /*) ;; *) fail '--bin-dir must be an absolute path' ;; esac
 [ "$(uname -s)" = Linux ] || fail 'This installer supports Linux; see README for Windows and source builds'
