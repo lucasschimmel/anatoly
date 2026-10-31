@@ -1,4 +1,4 @@
-use crate::network::NetworkPolicy;
+use crate::{network::NetworkPolicy, tls_observation::TlsObservation, waf::WafEvidence};
 use anyhow::{Context, Result, bail};
 use reqwest::{Url, blocking::Client, header::LOCATION};
 use serde::Serialize;
@@ -60,6 +60,8 @@ pub struct Transport {
     pub requests: usize,
     pub observations: Vec<Observation>,
     pub redirect_metadata: Vec<PublicMetadata>,
+    pub tls: Vec<TlsObservation>,
+    pub waf: Vec<WafEvidence>,
     policy: NetworkPolicy,
     started: Instant,
 }
@@ -106,6 +108,7 @@ impl Transport {
             )
             .redirect(reqwest::redirect::Policy::none())
             .retry(reqwest::retry::never())
+            .tls_info(true)
             .user_agent(concat!(
                 "Anatoly/",
                 env!("CARGO_PKG_VERSION"),
@@ -121,6 +124,8 @@ impl Transport {
             requests: 0,
             observations: vec![],
             redirect_metadata: vec![],
+            tls: vec![],
+            waf: vec![],
             policy,
             started: Instant::now(),
         })
@@ -163,6 +168,7 @@ impl Transport {
             let response = self.client.get(url.clone()).timeout(request_timeout).send()
                 .map_err(|_| anyhow::anyhow!("HTTP request failed (DNS, TLS, connection or timeout); verify the target and certificate"))?;
             let status = response.status();
+            self.capture_edge(&url, &response);
             let next = if status.is_redirection() {
                 response
                     .headers()
@@ -221,6 +227,23 @@ impl Transport {
                 body: String::from_utf8_lossy(&bytes).into_owned(),
                 metadata,
             });
+        }
+    }
+
+    fn capture_edge(&mut self, url: &Url, response: &reqwest::blocking::Response) {
+        if url.scheme() == "https" {
+            let tls = crate::tls_observation::inspect(
+                url,
+                response.extensions().get::<reqwest::tls::TlsInfo>(),
+            );
+            if !self.tls.contains(&tls) {
+                self.tls.push(tls);
+            }
+        }
+        for evidence in crate::waf::inspect(url, response.status().as_u16(), response.headers()) {
+            if !self.waf.contains(&evidence) {
+                self.waf.push(evidence);
+            }
         }
     }
 }

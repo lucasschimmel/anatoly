@@ -7,7 +7,7 @@ use std::path::PathBuf;
 #[command(
     name = "anatoly",
     version,
-    about = "Assess PHP2Shell exposure using bounded public HTTP evidence."
+    about = "Assess PHP2Shell exposure using bounded HTTP evidence."
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -51,6 +51,8 @@ pub enum Command {
         input: PathBuf,
         #[arg(short, long)]
         output: PathBuf,
+        #[arg(long, value_enum, default_value = "html")]
+        format: ReportFormat,
     },
     /// Evaluate a saved report against optional JSON rules.
     Policy {
@@ -62,6 +64,13 @@ pub enum Command {
     Explain { input: PathBuf },
     /// Validate scan settings and local HTTP client setup without requests.
     Doctor(Box<ScanArgs>),
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum ReportFormat {
+    Html,
+    Csv,
+    Sarif,
 }
 
 #[derive(Args)]
@@ -98,6 +107,35 @@ pub enum FailOn {
 #[derive(Args)]
 #[command(group(clap::ArgGroup::new("input").args(["targets", "url", "list"]).required(true).multiple(true)))]
 pub struct ScanArgs {
+    /// Extra request header, repeatable. Values are never exported. One origin only.
+    #[arg(
+        short = 'H',
+        long = "header",
+        allow_hyphen_values = true,
+        help_heading = "HTTP transport"
+    )]
+    pub header: Vec<String>,
+    /// Read a complete Name: value header from an environment variable; repeatable.
+    #[arg(long, help_heading = "HTTP transport")]
+    pub header_env: Vec<String>,
+    /// Read HTTP Basic user:password from an environment variable; never print it.
+    #[arg(long, help_heading = "HTTP transport")]
+    pub basic_auth_env: Option<String>,
+    /// Map HOST:IP without changing Host/SNI; repeatable. Requires --no-proxy.
+    #[arg(long, help_heading = "HTTP transport")]
+    pub resolve: Vec<String>,
+    /// Append at most 64 diagnostic paths from a file (64 KiB max).
+    #[arg(long, help_heading = "Analysis")]
+    pub wordlist: Option<PathBuf>,
+    /// Add one benign query-marker request within the shared target budget.
+    #[arg(long, help_heading = "Analysis")]
+    pub waf_probe: bool,
+    /// Export scan/exposure findings as CSV to a new file.
+    #[arg(long, help_heading = "Output and CI")]
+    pub csv: Option<PathBuf>,
+    /// Export scan/exposure findings as SARIF 2.1.0 to a new file.
+    #[arg(long, help_heading = "Output and CI")]
+    pub sarif: Option<PathBuf>,
     /// Absolute HTTP(S) URLs.
     pub targets: Vec<String>,
     /// Target URL; repeatable alternative to positional URLs.

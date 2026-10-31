@@ -23,6 +23,7 @@ pub fn exposure(mut args: ScanArgs, json: bool, ui: &Ui) -> Result<u8> {
 }
 
 pub fn doctor(args: ScanArgs, json_output: bool, ui: &Ui) -> Result<u8> {
+    reject_exports(&args)?;
     if args.jsonl || args.summary_only {
         bail!(
             "Doctor produces one configuration result; use --json without --jsonl or --summary-only"
@@ -42,6 +43,10 @@ pub fn doctor(args: ScanArgs, json_output: bool, ui: &Ui) -> Result<u8> {
 }
 
 pub fn headers(args: ScanArgs, json_output: bool, ui: &Ui) -> Result<u8> {
+    reject_exports(&args)?;
+    if args.waf_probe {
+        bail!("--waf-probe is available in scan, exposure and watch");
+    }
     if args.dry_run {
         return runner::run(args, json_output, &Ui::new(anatoly::ui::Color::Never));
     }
@@ -56,7 +61,7 @@ pub fn headers(args: ScanArgs, json_output: bool, ui: &Ui) -> Result<u8> {
         let item = match transport.get(&url) {
             Ok(page) => json!({"target":display_url(&url),"final_url":display_url(&page.url),
                 "http_status":page.status,"findings":anatoly::header_audit::assess(&page),
-                "observations":transport.observations,"requests_sent":transport.requests}),
+                "observations":transport.observations,"requests_sent":transport.requests,"tls":transport.tls,"waf":transport.waf}),
             Err(_) => {
                 json!({"target":display_url(&url),"error":"HTTP observation failed; verify DNS, TLS, connection and budgets", "requests_sent":transport.requests})
             }
@@ -94,6 +99,7 @@ pub fn headers(args: ScanArgs, json_output: bool, ui: &Ui) -> Result<u8> {
 
 // Rounds share prevalidated inputs; each target retains its own request and time budgets.
 pub fn watch(args: WatchArgs, json_output: bool, ui: &Ui) -> Result<u8> {
+    reject_exports(&args.scan)?;
     if args.scan.jsonl || args.scan.summary_only {
         bail!(
             "Watch uses change events; use --json for one aggregate result, without --jsonl or --summary-only"
@@ -164,6 +170,7 @@ fn state(report: &scan::ScanReport) -> Result<Value> {
         json!({"version":report.version,"verdict":report.verdict,"detection_level":report.analysis.detection_level,
         "coverage_complete":report.analysis.coverage_complete,"gaps":report.analysis.gaps,
         "final_url":report.final_url,"evidence":evidence,"signals":report.signals,"directives":report.directives,
+        "tls":report.tls,"waf":report.waf,
         "statuses":report.observations.iter().map(|o|o.status).collect::<Vec<_>>()}),
     )
 }
@@ -171,6 +178,14 @@ fn state(report: &scan::ScanReport) -> Result<Value> {
 fn ensure_new(args: &ScanArgs) -> Result<()> {
     if args.output.as_ref().is_some_and(|p| p.exists()) {
         bail!("Output already exists; choose a new report filename");
+    }
+    Ok(())
+}
+fn reject_exports(args: &ScanArgs) -> Result<()> {
+    if args.csv.is_some() || args.sarif.is_some() {
+        bail!(
+            "CSV/SARIF flags are supported by scan/exposure; use report --format for saved scan reports"
+        );
     }
     Ok(())
 }

@@ -28,3 +28,5 @@ anatoly policy scan.json --rules requirements.json --json
 ```
 
 These are the defaults. Each enabled rule produces `pass`, `fail` or `unknown`. Overall exits: 0 for all passing rules, 1 for any failure, 2 for unknown or an empty rule set, and 3 for invalid input or output failures. Absence of observed diagnostics remains unknown: a bounded public scan cannot prove that no diagnostic route exists. `no_affected` uses the stored advisory snapshot and advertised version; its pass does not attest actual vendor patches.
+
+Version 0.2.0 also supports report scan.json --format csv -o scan.csv and --format sarif -o scan.sarif. These conversions remain offline and validate the imported report.
