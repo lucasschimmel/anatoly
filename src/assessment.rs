@@ -1,5 +1,5 @@
 use crate::{
-    fingerprint::Directive,
+    fingerprint::{DIAGNOSTIC_DIRECTIVES, Directive},
     policy::{CVES, VersionStatus},
 };
 use serde::Serialize;
@@ -59,13 +59,7 @@ pub fn cve_assessments(verdict: &Verdict) -> Vec<CveAssessment> {
 
 pub fn configuration_checks(directives: &[Directive]) -> Vec<Check> {
     let mut checks = vec![];
-    for name in [
-        "session.upload_progress.enabled",
-        "memory_limit",
-        "post_max_size",
-        "server api",
-        "display_errors",
-    ] {
+    for &name in DIAGNOSTIC_DIRECTIVES {
         let values: Vec<_> = directives.iter().filter(|d| d.name == name).collect();
         let status = if values.is_empty() {
             "unknown"
@@ -77,7 +71,7 @@ pub fn configuration_checks(directives: &[Directive]) -> Vec<Check> {
         } else {
             "observed"
         };
-        let detail = if values.is_empty() {
+        let mut detail: String = if values.is_empty() {
             "Not disclosed; absence of evidence is not a configuration value.".into()
         } else {
             values
@@ -86,6 +80,8 @@ pub fn configuration_checks(directives: &[Directive]) -> Vec<Check> {
                 .collect::<Vec<_>>()
                 .join("; ")
         };
+        detail.push(' ');
+        detail.push_str(configuration_context(name));
         checks.push(Check {
             name: name.into(),
             status: status.into(),
@@ -95,6 +91,35 @@ pub fn configuration_checks(directives: &[Directive]) -> Vec<Check> {
     checks.push(Check { name: "exploit_validation".into(), status: "not_attempted".into(),
         detail: "HTTP observations cannot certify absence of memory corruption. Validate complete vendor patches and restart all PHP workers.".into() });
     checks
+}
+
+fn configuration_context(name: &str) -> &'static str {
+    match name {
+        "session.upload_progress.enabled" => {
+            "Off reduces the early session path only; other stale-state paths remain. No session_start() call is required for the early path."
+        }
+        "memory_limit" => {
+            "A finite limit enables predictable PHP OOM. -1 does not exclude allocation failures and is not proof of protection."
+        }
+        "server api" => {
+            "FPM may terminate a child on startup failure, but application-stage stale-state paths remain possible. SAPI alone does not establish safety."
+        }
+        "display_errors" => {
+            "Off hides diagnostics; stale-state consumers can run before PHP decides to display or log them."
+        }
+        "fatal_error_backtraces" => {
+            "PHP 8.5: disabling this removes one backtrace producer, not all stale-state paths. An absent directive does not imply Off."
+        }
+        "opcache.enable" | "opcache.enable_cli" => {
+            "OPcache observations describe one context only; disabling it does not exclude the other PHP2Shell paths."
+        }
+        "session.serialize_handler" => {
+            "Session decoder choice affects individual chains; this is not evidence that all lifecycle paths are patched."
+        }
+        _ => {
+            "Input controls constrain specific paths only; their disclosed values cannot verify complete patches or all application routes."
+        }
+    }
 }
 
 pub fn recommendations() -> Vec<String> {

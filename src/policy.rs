@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-pub const POLICY_DATE: &str = "2026-10-30";
+pub const POLICY_DATE: &str = "2026-10-31";
 pub const ADVISORIES: [&str; 2] = [
     "https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w",
     "https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp",

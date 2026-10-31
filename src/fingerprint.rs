@@ -67,6 +67,26 @@ pub struct Directive {
     pub master_value: Option<String>,
 }
 
+/// Only these diagnostic settings are retained; phpinfo can also contain credentials.
+pub const DIAGNOSTIC_DIRECTIVES: &[&str] = &[
+    "session.upload_progress.enabled",
+    "memory_limit",
+    "post_max_size",
+    "upload_max_filesize",
+    "display_errors",
+    "server api",
+    "fatal_error_backtraces",
+    "opcache.enable",
+    "opcache.enable_cli",
+    "file_uploads",
+    "max_file_uploads",
+    "max_input_vars",
+    "max_input_nesting_level",
+    "max_multipart_body_parts",
+    "enable_post_data_reading",
+    "session.serialize_handler",
+];
+
 pub struct Patterns {
     header: Regex,
     info_version: Regex,
@@ -170,14 +190,6 @@ impl Patterns {
             return (vec![], vec![]);
         }
         let versions = self.versions(&self.info_version, &self.text(body), source);
-        let names = [
-            "session.upload_progress.enabled",
-            "memory_limit",
-            "post_max_size",
-            "upload_max_filesize",
-            "display_errors",
-            "server api",
-        ];
         let mut directives = vec![];
         for row in self.rows.captures_iter(body) {
             let cells: Vec<_> = self
@@ -185,13 +197,31 @@ impl Patterns {
                 .captures_iter(&row[1])
                 .map(|c| self.text(&c[1]))
                 .collect();
-            if cells.len() >= 2 && names.contains(&cells[0].to_ascii_lowercase().as_str()) {
+            if cells.len() >= 2
+                && DIAGNOSTIC_DIRECTIVES.contains(&cells[0].to_ascii_lowercase().as_str())
+            {
                 directives.push(Directive {
                     source: source.to_owned(),
                     name: cells[0].to_ascii_lowercase(),
                     local_value: cells[1].chars().take(120).collect(),
                     master_value: cells.get(2).map(|s| s.chars().take(120).collect()),
                 });
+            }
+        }
+        if plain_info {
+            for line in body.lines() {
+                let cells: Vec<_> = line.split("=>").map(str::trim).collect();
+                let Some(name) = cells.first().map(|s| s.to_ascii_lowercase()) else {
+                    continue;
+                };
+                if cells.len() >= 2 && DIAGNOSTIC_DIRECTIVES.contains(&name.as_str()) {
+                    directives.push(Directive {
+                        source: source.to_owned(),
+                        name,
+                        local_value: cells[1].chars().take(120).collect(),
+                        master_value: cells.get(2).map(|s| s.chars().take(120).collect()),
+                    });
+                }
             }
         }
         (versions, directives)

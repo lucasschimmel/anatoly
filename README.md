@@ -25,9 +25,9 @@ download is needed. This flag defaults to 32 requests; explicit caps remain auth
 Download and inspect the installer, then install a versioned release:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.1/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.2/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.2.1
+sh /tmp/anatoly-install.sh --version v0.2.2
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly scan -u https://your-app.example/ -o report.json
@@ -41,13 +41,13 @@ for a persistent installation under `/opt/my-resources/bin`.
 
 ### Windows
 
-Download `anatoly-v0.2.1-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
+Download `anatoly-v0.2.2-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
 [Releases](https://github.com/lucasschimmel/anatoly/releases). Compare the archive's
 SHA-256 with its line in SHA256SUMS, extract it, then run the executable:
 
 ```powershell
-Get-FileHash .\anatoly-v0.2.1-x86_64-pc-windows-msvc.zip -Algorithm SHA256
-Expand-Archive .\anatoly-v0.2.1-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
+Get-FileHash .\anatoly-v0.2.2-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Expand-Archive .\anatoly-v0.2.2-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
 .\anatoly\anatoly.exe --version
 .\anatoly\anatoly.exe scan -u https://your-app.example/
 ```
