@@ -37,6 +37,15 @@ Observed diagnostics may be accessible only to this authenticated request.
 
 ## Diagnostic wordlists
 
+From 0.2.1, `--builtin-wordlist` selects the embedded 24-path core list without reading
+a local file or contacting a wordlist server. Its default request cap is 32 unless
+`--max-requests` overrides it. Combine it with `--wordlist` to append custom paths;
+both reject the quick profile and `--no-discover`. Ordinary scan defaults are unchanged.
+
+```sh
+anatoly scan -u https://app.example/ --builtin-wordlist
+```
+
 ```sh
 anatoly exposure -u https://app.example/ --wordlist paths.txt --max-requests 32
 ```
@@ -82,4 +91,3 @@ result set is not a security attestation. Full JSON retains all proofs and hypot
 
 Compare, explain, HTML and watch retain TLS/WAF observations. Older 0.1.0 reports remain
 readable with those observations absent.
-
