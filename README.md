@@ -11,6 +11,12 @@ No exploit payloads, command execution or security certification.
 Commands: `scan`, `exposure`, `headers`, `watch`, `compare`, `report`, `policy`,
 `explain`, `doctor`, `version`, `builds` and `credits`.
 
+New in **0.3.0**: an extensible 94-product technology catalog,
+framework-version observations including Laravel, structured HTML analysis,
+source-preserving observations, separate PHP presence and version assessment,
+and prioritized bounded discovery. See [fingerprint catalogs](FINGERPRINTS.md)
+and [Reconnaissance design and Orion findings](RECONNAISSANCE.md).
+
 New in 0.2.0: custom headers, environment-based authentication, DNS overrides,
 diagnostic wordlists, TLS/edge evidence and CSV/SARIF. See [Audit controls](AUDIT-CONTROLS.md).
 
@@ -25,9 +31,9 @@ download is needed. This flag defaults to 32 requests; explicit caps remain auth
 Download and inspect the installer, then install a versioned release:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.2/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.3.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.2.2
+sh /tmp/anatoly-install.sh --version v0.3.0
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly scan -u https://your-app.example/ -o report.json
@@ -41,13 +47,13 @@ for a persistent installation under `/opt/my-resources/bin`.
 
 ### Windows
 
-Download `anatoly-v0.2.2-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
+Download `anatoly-v0.3.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
 [Releases](https://github.com/lucasschimmel/anatoly/releases). Compare the archive's
 SHA-256 with its line in SHA256SUMS, extract it, then run the executable:
 
 ```powershell
-Get-FileHash .\anatoly-v0.2.2-x86_64-pc-windows-msvc.zip -Algorithm SHA256
-Expand-Archive .\anatoly-v0.2.2-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
+Get-FileHash .\anatoly-v0.3.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Expand-Archive .\anatoly-v0.3.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
 .\anatoly\anatoly.exe --version
 .\anatoly\anatoly.exe scan -u https://your-app.example/
 ```
@@ -115,15 +121,19 @@ proxy/custom-CA settings, dry-run, JSONL and CI exit policies.
    changes or inconsistent disclosure. All samples share the request budget.
 2. Extract explicit runtime declarations from PHP/server headers, recognizable
    phpinfo diagnostics, explicit PHP runtime JSON and error-page footers.
-   Keep duplicate and redirect declarations. Ordinary PHP text, cookies,
-   CMS markers and Composer constraints remain separate hypotheses.
+   Keep duplicate and redirect declarations. Record application declarations
+   separately, including headers, generator metadata, attribution, selected asset
+   paths, Composer packages and canonical cookie names. Application versions and
+   Composer requirements never select an exact PHP version.
 3. Compare the version with the upstream fix floors for **CVE-2026-109618** and
    **CVE-2026-109619**.
 4. GET two diagnostic paths by default (`phpinfo.php`, `info.php` relative to the
    final application URL), including when initial headers meet the fix floor.
    This catches contradictions that a reassuring first response could hide.
-   Follow at most three disclosed same-origin diagnostic links; `--deep` adds
-   known public diagnostic/metadata paths. All requests share the same budget.
+   Retain up to three disclosed same-origin diagnostic paths by default, or 16
+   with thorough/deep discovery; `--max-linked-paths` overrides this limit.
+   Disclosed routes take priority over guesses; deep scans prioritize robots and
+   Composer metadata. All requests share the same request budget.
 5. If a recognizable phpinfo page is exposed, collect only allowlisted evidence:
    upload progress, memory limit, upload/request limits, SAPI, and display errors.
    Report conflicting versions rather than choosing the most reassuring one.
@@ -173,7 +183,9 @@ can be cached or reach the same worker, and cannot enumerate every pool member.
 
 For library callers, `scan()` preserves one application sample;
 `scan_with_samples()` accepts an explicit count. The CLI defaults to three.
-`scan_public()` additionally selects extended discovery.
+`scan_public()` additionally selects extended discovery. `Scanner::new()` followed
+by repeated `Scanner::scan()` calls reuses compiled detectors across a batch,
+while every target retains isolated transport, observations and budgets.
 
 The canonical detection levels are now `declared`, `corroborated`,
 `contradictory`, and `unknown` in `analysis.detection_level`. The older
@@ -181,6 +193,19 @@ The canonical detection levels are now `declared`, `corroborated`,
 `version_candidates` with proof methods, normalized tokens, HTTP status and source
 URLs. `signals` contains hypotheses separately. See [Public detection](PUBLIC-DETECTION.md)
 for the method matrix, inference limits and primary sources.
+
+`technologies` groups observed products with their source-specific versions and
+methods; `runtime.status` describes PHP presence as `declared`, `inferred` or
+`unknown`. These do not change version-evidence levels or CVE verdicts. For example,
+Craft CMS may be announced while PHP remains inferred and its version undisclosed.
+`analysis.coverage_scope` explicitly limits coverage to the selected request plan;
+it never promises exhaustive technology recognition or route discovery.
+
+Use `--fingerprints ./acme.json` to extend built-in header, cookie-name, asset,
+HTML and package recognition with a validated declarative catalog. Unknown provider
+declarations remain observations without an assumed PHP runtime. Product/runtime
+associations appear as `runtime_hint`; only an explicit PHP association permits
+PHP-presence inference. See [custom catalog examples and limits](FINGERPRINTS.md).
 
 | Verdict | Meaning | Exit |
 |---|---|---|

@@ -179,15 +179,21 @@ pub struct ScanArgs {
     /// Skip following disclosed diagnostic links, keeping configured paths.
     #[arg(long, help_heading = "Analysis")]
     pub no_linked_discovery: bool,
+    /// Maximum disclosed diagnostic paths retained (balanced:3, thorough/deep:16).
+    #[arg(long, value_parser = clap::value_parser!(u16).range(0..=128), help_heading = "Analysis")]
+    pub max_linked_paths: Option<u16>,
     /// Omit cookie-shape hypotheses while retaining explicit version proofs.
     #[arg(long, help_heading = "Analysis")]
     pub no_cookie_hints: bool,
-    /// Keep explicit version evidence, suppress all weak hypotheses.
+    /// Keep observed technologies and version proofs; suppress hypotheses and runtime inference.
     #[arg(long, help_heading = "Analysis")]
     pub no_hypotheses: bool,
     /// Replace default diagnostic paths; repeatable, same origin only.
     #[arg(long, help_heading = "Analysis")]
     pub diagnostic_path: Vec<String>,
+    /// Extend embedded technology signatures with a validated local JSON catalog.
+    #[arg(long, help_heading = "Analysis")]
+    pub fingerprints: Option<PathBuf>,
     /// Requests per target including redirects (profile defaults: 4/8/32).
     #[arg(long, value_parser = clap::value_parser!(u16).range(1..=32), help_heading = "Budgets and pacing")]
     pub max_requests: Option<u16>,

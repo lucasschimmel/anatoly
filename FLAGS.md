@@ -14,6 +14,7 @@ No flag certifies security or disables TLS verification.
 | `--deep` | Add extended discovery to balanced; default budget becomes 32 |
 | `--samples N` | Override profile sampling, 1–5 |
 | `--max-requests N` | Override profile request budget, 1–32; includes redirects |
+| `--max-linked-paths N` | Retained disclosed diagnostic paths, 0–128; default 3, or 16 for thorough/deep |
 | `--delay-ms N` | Override profile spacing, 0–5000 ms |
 
 Explicit numeric flags override profile defaults. `--rate-limit` can increase
@@ -31,10 +32,11 @@ reported as incomplete coverage.
 | `--https-only` | Reject HTTP targets before any request |
 | `--max-targets N` | Maximum distinct input URLs, 1–256, checked before any request |
 | `--no-linked-discovery` | Skip disclosed HTML/robots links; retain selected fixed diagnostics |
-| `--no-cookie-hints` | Omit cookie hypotheses while retaining explicit version evidence |
-| `--no-hypotheses` | Omit every weak hypothesis; retain explicit version evidence |
+| `--no-cookie-hints` | Omit cookie hypotheses and cookie-based technology identification; retain explicit version evidence |
+| `--no-hypotheses` | Omit weak signals and inferred PHP presence; retain observed technologies and explicit version evidence |
 | `--no-discover` | Supplied URLs only; sampling still follows `--samples` |
 | `--diagnostic-path PATH` | Replace default fixed diagnostic paths; repeatable, same origin |
+| `--fingerprints FILE` | Extend built-ins with a validated UTF-8 JSON fingerprint catalog, at most 1 MiB |
 
 Hostnames are normalized using URL hostname normalization (including IDNs).
 Bracket IPv6 literals. Path exclusions compare case-insensitive prefixes after
@@ -48,6 +50,24 @@ one denied target aborts rather than partially scanning. Explicitly excluded
 diagnostics and disabled methods are recorded as operator-selected omissions;
 plan coverage refers only to the remaining selected checks. It is never a claim
 that all application paths were examined.
+
+Since version 0.3.0, disclosed diagnostic paths are prioritized ahead of
+fallback guesses. Deep discovery places `robots.txt`, `composer.json` and
+`composer.lock` ahead of guessed diagnostics. Links excluded by scope do not
+consume `--max-linked-paths`. This limit does not increase `--max-requests`.
+Reaching it sets `analysis.discovery_limited` and a coverage gap; selecting zero
+with disclosed links therefore reports omitted discovery. Use
+`--no-linked-discovery` to explicitly disable this method instead.
+
+Technology observation and HTML-depth limits also produce coverage gaps.
+`analysis.coverage_complete` describes completion of the selected request plan,
+not exhaustive recognition. See [Reconnaissance](RECONNAISSANCE.md).
+
+`--fingerprints` validates and compiles the custom catalog before HTTP activity,
+including doctor/dry-run. Invalid fields, expressions, selectors, aliases or
+version groups fail preflight. Saved configuration records only
+`custom_fingerprints: true/false`; neither the custom file path nor its contents
+are exported. See the [schema and complete example](FINGERPRINTS.md).
 
 ## Time, rate and transport
 

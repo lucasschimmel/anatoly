@@ -1,6 +1,9 @@
+use crate::discovery::is_diagnostic_name;
 use crate::{
     fingerprint::{Evidence, EvidenceKind, Patterns},
+    html::Facts,
     http::{Page, PublicMetadata, allowed_redirect, display_url},
+    technology::{self, Catalog, Technology},
 };
 use anyhow::Result;
 use regex::Regex;
@@ -35,10 +38,8 @@ pub struct Signal {
 }
 
 pub struct Detector {
-    attribute: Regex,
     address: Regex,
-    meta: Regex,
-    cms: Regex,
+    catalog: std::sync::Arc<Catalog>,
     php_hint: Regex,
     dynamic_property: Regex,
     null_parameter: Regex,
@@ -46,15 +47,20 @@ pub struct Detector {
     json_version: Regex,
 }
 
+#[derive(Default)]
+pub struct Findings {
+    pub html_limited: bool,
+    pub evidence: Vec<Evidence>,
+    pub signals: Vec<Signal>,
+    pub links: Vec<String>,
+    pub technologies: Vec<Technology>,
+}
+
 impl Detector {
     pub fn new() -> Result<Self> {
         Ok(Self {
-            attribute: Regex::new(r#"(?i)\b(?:href|action)\s*=\s*["']([^"']{1,512})["']"#)?,
             address: Regex::new(r"(?is)<address\b[^>]*>(.*?)</address>")?,
-            meta: Regex::new(r"(?is)<meta\b[^>]{0,1024}>")?,
-            cms: Regex::new(
-                r"(?i)\b(WordPress|Drupal|Joomla|PrestaShop|Laravel|Symfony|phpBB)(?:\s+([0-9]+(?:\.[0-9]+){0,2}))?",
-            )?,
+            catalog: Catalog::shared_builtin()?,
             php_hint: Regex::new(r"(?i)\bPHP\s*[/ ]?\s*([0-9]+\.[0-9]+(?:\.[0-9]+)?)")?,
             dynamic_property: Regex::new(
                 r"(?is)deprecated\s*:?.{0,80}creation of dynamic property.{0,180}is deprecated",
@@ -72,10 +78,36 @@ impl Detector {
         data: &PublicMetadata,
         patterns: &Patterns,
     ) -> (Vec<Evidence>, Vec<Signal>) {
+        self.metadata_with_catalog(data, patterns, None)
+    }
+
+    pub fn catalog(&self) -> std::sync::Arc<Catalog> {
+        std::sync::Arc::clone(&self.catalog)
+    }
+
+    pub fn metadata_with_catalog(
+        &self,
+        data: &PublicMetadata,
+        patterns: &Patterns,
+        catalog: Option<&Catalog>,
+    ) -> (Vec<Evidence>, Vec<Signal>) {
+        let catalog = catalog.unwrap_or(&self.catalog);
         let url = display_url(&data.url);
         let mut proofs = vec![];
         let mut signals = vec![];
         for (name, value) in &data.headers {
+            if !matches!(
+                name.as_str(),
+                "server"
+                    | "x-powered-by"
+                    | "x-php-version"
+                    | "php-version"
+                    | "x-runtime"
+                    | "x-runtime-version"
+                    | "x-generator"
+            ) {
+                continue;
+            }
             let label = match name.as_str() {
                 "x-powered-by" => "X-Powered-By",
                 "server" => "Server",
@@ -109,9 +141,6 @@ impl Detector {
                 ));
             }
             proofs.extend(exact);
-            if matches!(name.as_str(), "x-powered-by" | "x-generator") {
-                self.cms_hint(value, &source, &mut signals);
-            }
         }
         for cookie in &data.cookies {
             signals.push(signal("cookie", &url, &format!("Set-Cookie {}: {} bytes, {}, Secure={}, HttpOnly={}, SameSite={} (value discarded)", cookie.name, cookie.length, cookie.alphabet, cookie.secure, cookie.http_only, cookie.same_site),
@@ -125,20 +154,35 @@ impl Detector {
         for proof in &mut proofs {
             proof.http_status = Some(data.status);
         }
+        signals.extend(technology::application_signals(
+            &catalog.metadata(data, false),
+        ));
         (proofs, signals)
     }
 
-    pub fn body(
+    pub fn technologies(
         &self,
-        page: &Page,
-        patterns: &Patterns,
-    ) -> (Vec<Evidence>, Vec<Signal>, Vec<String>) {
+        data: &PublicMetadata,
+        cookies: bool,
+        catalog: Option<&Catalog>,
+    ) -> Vec<Technology> {
+        catalog.unwrap_or(&self.catalog).metadata(data, cookies)
+    }
+
+    pub fn body(&self, page: &Page, patterns: &Patterns, catalog: Option<&Catalog>) -> Findings {
+        let catalog = catalog.unwrap_or(&self.catalog);
         let url = display_url(&page.url);
         let mut proofs = vec![];
         let mut signals = vec![];
+        let facts = Facts::parse(&page.body);
+        let mut technologies = vec![];
+        technology::merge(&mut technologies, catalog.resources(&facts, page));
+        let (html_technologies, fingerprint_limited) = catalog.html(&facts, page);
+        technology::merge(&mut technologies, html_technologies);
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&page.body) {
             self.json_runtime(&json, &url, patterns, &mut proofs, 0);
             self.composer(&json, &page.url, &mut signals);
+            technology::merge(&mut technologies, catalog.composer(&json, page));
         }
         let name = page.url.path().rsplit('/').next().unwrap_or("");
         if ["phpversion.php", "php-version.php"].contains(&name)
@@ -160,11 +204,18 @@ impl Detector {
                 proofs.extend(found);
             }
         }
-        for tag in self.meta.find_iter(&page.body) {
-            if tag.as_str().to_ascii_lowercase().contains("generator") {
-                self.cms_hint(tag.as_str(), &format!("{url} [generator]"), &mut signals);
+        for (values, method) in [
+            (&facts.generators, "generator"),
+            (&facts.attributions, "attribution"),
+        ] {
+            for value in values {
+                technology::merge(
+                    &mut technologies,
+                    catalog.declarations(value, &format!("{url} [{method}]"), method, page.status),
+                );
             }
         }
+        signals.extend(technology::application_signals(&technologies));
         if let Some(c) = self.php_hint.captures(&page.body) {
             signals.push(signal("body_mention", &url, &format!("Page text mentions PHP {}", &c[1]), "This may be documentation, an application requirement or static content; it does not identify the running PHP release.", Some(format!("{} (text hypothesis)", &c[1])), "https://www.php.net/manual/en/security.hiding.php"));
         }
@@ -174,8 +225,8 @@ impl Detector {
         if self.null_parameter.is_match(&page.body) {
             signals.push(signal("error_behavior", &url, "Null-to-non-nullable parameter deprecation wording", "If emitted by the runtime, PHP >=8.1 is plausible. This is not an exact version or a patch check.", Some(">=8.1 (hypothesis)".into()), "https://www.php.net/releases/8.1/en.php"));
         }
-        if self.attribute.captures_iter(&page.body).any(|c| {
-            c[1].split('?')
+        if facts.links.iter().any(|link| {
+            link.split('?')
                 .next()
                 .is_some_and(|s| s.to_ascii_lowercase().ends_with(".php"))
         }) {
@@ -184,19 +235,12 @@ impl Detector {
         for proof in &mut proofs {
             proof.http_status = Some(page.status);
         }
-        (proofs, signals, self.links(&page.url, &page.body))
-    }
-
-    fn cms_hint(&self, text: &str, source: &str, output: &mut Vec<Signal>) {
-        if let Some(c) = self.cms.captures(text) {
-            let label = format!(
-                "{}{}",
-                &c[1],
-                c.get(2)
-                    .map_or(String::new(), |v| format!(" {}", v.as_str()))
-            );
-            output.push(signal("application", source, &format!("Application marker: {label}"), "An application version is not the installed PHP version; no PHP release is assigned from this marker.", None,
-                "https://www.php.net/manual/en/security.hiding.php"));
+        Findings {
+            html_limited: facts.limited || fingerprint_limited,
+            evidence: proofs,
+            signals,
+            links: self.links_from(&page.url, &facts.links, &page.body),
+            technologies,
         }
     }
 
@@ -277,13 +321,24 @@ impl Detector {
     }
 
     pub fn links(&self, base: &Url, body: &str) -> Vec<String> {
+        self.links_from(base, &Facts::parse(body).links, body)
+    }
+
+    fn links_from(&self, base: &Url, attributes: &[String], body: &str) -> Vec<String> {
         let mut links = vec![];
-        let values = self
-            .attribute
-            .captures_iter(body)
-            .map(|c| c[1].to_owned())
-            .chain(self.robot.captures_iter(body).map(|c| c[1].to_owned()));
-        for value in values.take(128) {
+        let mut seen = std::collections::HashSet::new();
+        let values = attributes.iter().cloned().chain(
+            self.robot
+                .captures_iter(
+                    if base.path().ends_with("/robots.txt") && !body.contains('<') {
+                        body
+                    } else {
+                        ""
+                    },
+                )
+                .map(|c| c[1].to_owned()),
+        );
+        for value in values {
             let Ok(mut next) = base.join(&value.replace("&amp;", "&")) else {
                 continue;
             };
@@ -297,34 +352,16 @@ impl Detector {
                 .to_ascii_lowercase();
             if allowed_redirect(base, &next) && is_diagnostic_name(&name) {
                 let display = display_url(&next);
-                if !links.contains(&display) {
+                if seen.insert(display.clone()) {
                     links.push(display);
                 }
-            }
-            if links.len() == 3 {
-                break;
             }
         }
         links
     }
 }
 
-fn is_diagnostic_name(name: &str) -> bool {
-    [
-        "phpinfo.php",
-        "php_info.php",
-        "php-info.php",
-        "phpversion.php",
-        "php-version.php",
-        "info.php",
-        "version.php",
-        "diagnostics.php",
-        "status.php",
-    ]
-    .contains(&name)
-}
-
-fn signal(
+pub(crate) fn signal(
     category: &str,
     source: &str,
     observation: &str,

@@ -5,14 +5,16 @@ No Rust compiler is needed for the release binary. Linux x86_64 and ARM64 are su
 Requirements: glibc >= 2.35, OpenSSL 3, CA certificates, curl, tar and sha256sum.
 Use a source build if your container does not meet these requirements.
 
+Version 0.3.0 adds extensible technology fingerprinting and framework-version observations. See [Fingerprint catalogs](FINGERPRINTS.md) and [Reconnaissance](RECONNAISSANCE.md) for detection evidence and limits.
+
 ## Install inside a container
 
 Run these commands **inside your Exegol container**, not on the host:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.2/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.3.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.2.2 --bin-dir "$HOME/.local/bin"
+sh /tmp/anatoly-install.sh --version v0.3.0 --bin-dir "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly doctor https://app.example/ --no-proxy --json
@@ -28,9 +30,9 @@ download integrity; they are not a separate publisher signature.
 Download and inspect the installer, then explicitly replace the existing binary:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.2/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.3.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.2.2 --bin-dir "$HOME/.local/bin" --force
+sh /tmp/anatoly-install.sh --version v0.3.0 --bin-dir "$HOME/.local/bin" --force
 "$HOME/.local/bin/anatoly" --version
 ```
 
@@ -44,7 +46,7 @@ Exegol mounts your configured host `my-resources` directory inside containers at
 `/opt/my-resources`. With that share enabled, install the binary there:
 
 ```sh
-sh /tmp/anatoly-install.sh --version v0.2.2 --bin-dir /opt/my-resources/bin
+sh /tmp/anatoly-install.sh --version v0.3.0 --bin-dir /opt/my-resources/bin
 export PATH="/opt/my-resources/bin:$PATH"
 anatoly --version
 ```
@@ -90,3 +92,25 @@ export PATH="$HOME/.cargo/bin:$PATH"
 The repository pins Rust 1.99.0. These commands do not add Anatoly to Exegol's official
 tool catalog. The tool performs bounded HTTP observations, with optional environment-based authentication
 and no exploitation; unknown results require further investigation.
+
+## Validate the source build
+
+From a source checkout, validate locally before installing it:
+
+```sh
+cargo fmt --check
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked
+cargo build --release --locked
+python3 scripts/test-tls.py
+sh -n install.sh
+bash scripts/test-installer.sh
+shellcheck install.sh scripts/test-installer.sh
+./target/release/anatoly doctor https://app.example/ --profile thorough --no-proxy --json
+```
+
+The test suite uses controlled fixtures. `doctor` validates configuration without
+sending HTTP requests. Release CI validates native Linux x86_64 and ARM64 builds,
+real loopback HTTPS trust/metadata, and the published installer. Test representative
+Exegol images before proposing upstream inclusion; maintainer review is a separate
+step and Anatoly is not currently an official bundled Exegol tool.

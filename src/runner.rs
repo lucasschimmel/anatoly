@@ -44,8 +44,9 @@ pub fn run(args: ScanArgs, json: bool, ui: &Ui) -> Result<u8> {
         return Ok(0);
     }
     let mut results = vec![];
+    let scanner = scan::Scanner::new()?;
     for (i, target) in targets.iter().enumerate() {
-        let result = scan::scan_configured(target, limits.clone(), &options)?;
+        let result = scanner.scan(target, limits.clone(), &options)?;
         if args.jsonl {
             event(&serde_json::json!({"type": "target", "index": i + 1, "data": result}))?;
         } else if !json && !args.summary_only {
@@ -186,6 +187,13 @@ pub(crate) fn configure(args: &ScanArgs) -> Result<(Limits, ScanOptions)> {
     Ok((
         limits,
         ScanOptions {
+            fingerprints: args
+                .fingerprints
+                .as_ref()
+                .map(|path| {
+                    anatoly::fingerprints::Catalog::from_file(path).map(std::sync::Arc::new)
+                })
+                .transpose()?,
             samples: args.samples.unwrap_or(default_samples).into(),
             discover: !args.no_discover && !matches!(args.profile, Profile::Quick),
             deep,
@@ -194,6 +202,11 @@ pub(crate) fn configure(args: &ScanArgs) -> Result<(Limits, ScanOptions)> {
             no_cookie_hints: args.no_cookie_hints,
             no_hypotheses: args.no_hypotheses,
             no_linked_discovery: args.no_linked_discovery,
+            max_linked_paths: args.max_linked_paths.map(usize::from).unwrap_or(if deep {
+                16
+            } else {
+                3
+            }),
             waf_probe: args.waf_probe,
         },
     ))
@@ -213,6 +226,8 @@ pub(crate) fn configuration(
         "https_only": options.network.https_only, "allow_hosts": options.network.allow_hosts,
         "exclude_paths": options.network.exclude_paths, "no_cookie_hints": options.no_cookie_hints,
         "no_hypotheses": options.no_hypotheses, "no_linked_discovery": options.no_linked_discovery,
+        "max_linked_paths":options.max_linked_paths,
+        "custom_fingerprints":args.fingerprints.is_some(),
         "proxy_configured": options.network.proxy.is_some(), "environment_proxies_disabled": options.network.no_proxy,
         "custom_ca": options.network.ca_pem.is_some(), "tls_validation": true,
         "custom_header_count": options.network.request.headers.len(), "authentication_configured":args.basic_auth_env.is_some(),

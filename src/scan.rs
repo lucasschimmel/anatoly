@@ -5,10 +5,9 @@ use crate::{
     fingerprint::{Patterns, candidates, resolve},
     http::{Limits, Transport, allowed_redirect, display_url, validate_url},
     policy::VersionStatus,
-    recon::{DEEP_PATHS, Detector, Signal, merge_signals},
+    recon::{Detector, Signal, merge_signals},
     scan_options::ScanOptions,
 };
-use std::collections::HashSet;
 
 /// One target, one isolated request budget. Diagnostics remain on the exact same origin.
 pub fn scan(
@@ -55,14 +54,47 @@ pub fn scan_configured(
     limits: Limits,
     options: &ScanOptions,
 ) -> anyhow::Result<ScanReport> {
-    let (samples, discover, paths, deep) = (
-        options.samples,
-        options.discover,
-        &options.paths,
-        options.deep,
-    );
+    Scanner::new()?.scan(target, limits, options)
+}
+
+/// Reuse compiled detectors across a batch; every target keeps isolated transport and budgets.
+pub struct Scanner {
+    patterns: Patterns,
+    detector: Detector,
+}
+
+impl Scanner {
+    pub fn new() -> anyhow::Result<Self> {
+        Ok(Self {
+            patterns: Patterns::new()?,
+            detector: Detector::new()?,
+        })
+    }
+
+    pub fn scan(
+        &self,
+        target: &str,
+        limits: Limits,
+        options: &ScanOptions,
+    ) -> anyhow::Result<ScanReport> {
+        scan_with_engine(target, limits, options, &self.patterns, &self.detector)
+    }
+}
+
+// The orchestrator keeps sample, optional probe and discovery phases in request order.
+fn scan_with_engine(
+    target: &str,
+    limits: Limits,
+    options: &ScanOptions,
+    patterns: &Patterns,
+    detector: &Detector,
+) -> anyhow::Result<ScanReport> {
+    let (samples, discover, paths) = (options.samples, options.discover, &options.paths);
     if !(1..=5).contains(&samples) {
         anyhow::bail!("Samples must be between 1 and 5");
+    }
+    if options.max_linked_paths > 128 {
+        anyhow::bail!("Maximum linked paths must be between 0 and 128");
     }
     let url = validate_url(target)?;
     options.network.validate()?;
@@ -76,9 +108,14 @@ pub fn scan_configured(
         }
     }
     let mut transport = Transport::with_policy(limits, options.network.clone())?;
-    let patterns = Patterns::new()?;
-    let detector = Detector::new()?;
+    transport.set_fingerprints(
+        options
+            .fingerprints
+            .clone()
+            .unwrap_or_else(|| detector.catalog()),
+    );
     let mut report = ScanReport {
+        technologies: vec![], runtime: Default::default(),
         tls: vec![], waf: vec![],
         version_candidates: vec![], signals: vec![], discovered_paths: vec![],
         analysis: Analysis::new(samples, if discover { paths.len() } else { 0 }),
@@ -113,7 +150,7 @@ pub fn scan_configured(
         Err(error) => {
             report.verdict = Verdict::Error;
             report.limitations.push(error.to_string());
-            return Ok(finish(report, transport, &patterns, &detector, options));
+            return Ok(finish(report, transport, patterns, detector, options));
         }
     };
     report.final_url = Some(display_url(&first.url));
@@ -123,7 +160,7 @@ pub fn scan_configured(
     if !usable_http {
         report.limitations.push(format!("Initial HTTP {} is not a usable application response; access errors and redirects cannot establish a protected runtime.", first.status));
     }
-    collect(&patterns, &detector, &first, &mut report, options);
+    collect(patterns, detector, &first, &mut report, options);
     report.analysis.samples_with_version = usize::from(usable_http && !report.evidence.is_empty());
     if usable_http {
         for _ in 1..samples {
@@ -137,7 +174,7 @@ pub fn scan_configured(
                 Ok(page) if (200..300).contains(&page.status) => {
                     report.analysis.samples_completed += 1;
                     let before = report.evidence.len();
-                    collect(&patterns, &detector, &page, &mut report, options);
+                    collect(patterns, detector, &page, &mut report, options);
                     report.analysis.samples_with_version +=
                         usize::from(report.evidence.len() > before);
                 }
@@ -146,7 +183,7 @@ pub fn scan_configured(
                         .analysis
                         .gaps
                         .push(format!("Application sample returned HTTP {}.", page.status));
-                    collect(&patterns, &detector, &page, &mut report, options);
+                    collect(patterns, detector, &page, &mut report, options);
                 }
                 Err(error) => report
                     .analysis
@@ -160,7 +197,7 @@ pub fn scan_configured(
             let mut probe = first.url.clone();
             probe.query_pairs_mut().append_pair("anatoly_probe", "1");
             match transport.get(&probe) {
-                Ok(page) => collect(&patterns, &detector, &page, &mut report, options),
+                Ok(page) => collect(patterns, detector, &page, &mut report, options),
                 Err(_) => report
                     .analysis
                     .gaps
@@ -174,69 +211,21 @@ pub fn scan_configured(
         report.limitations.push("The optional WAF probe uses a benign query marker. No detected marker or unchanged response proves that a WAF is absent or blocks PHP2Shell.".into());
     }
     if discover && usable_http {
-        let mut seen = HashSet::from([first.url.as_str().to_owned(), url.as_str().to_owned()]);
-        let mut planned = std::collections::VecDeque::new();
-        let extra = if deep { DEEP_PATHS } else { &[] };
-        let all_paths = report
-            .discovered_paths
-            .iter()
-            .chain(paths.iter())
-            .map(String::as_str)
-            .chain(extra.iter().copied());
-        for path in all_paths {
-            let next = first.url.join(path)?;
-            if !options.network.permits(&next) {
-                report.analysis.skipped_checks.push(format!(
-                    "Diagnostic excluded by scope: {}",
-                    display_url(&next)
-                ));
-                continue;
-            }
-            if seen.insert(next.as_str().to_owned()) {
-                planned.push_back(next);
-            }
-        }
-        report.analysis.diagnostics_requested = planned.len();
-        while let Some(next) = planned.pop_front() {
-            if !transport.remaining() {
-                report.limitations.push(
-                    "Request or target time budget reached; remaining diagnostic paths skipped."
-                        .into(),
-                );
-                report.analysis.gaps.push(
-                    "Request or target time budget prevented remaining diagnostic checks.".into(),
-                );
-                break;
-            }
-            match transport.get(&next) {
-                Ok(page) => {
-                    report.analysis.diagnostics_completed += 1;
-                    if !(200..300).contains(&page.status) && !matches!(page.status, 404 | 410) {
-                        report.analysis.gaps.push(format!(
-                            "Diagnostic route could not be assessed (HTTP {}).",
-                            page.status
-                        ));
-                    }
-                    collect(&patterns, &detector, &page, &mut report, options);
-                    for path in &report.discovered_paths {
-                        let next = first.url.join(path)?;
-                        if options.network.permits(&next) && seen.insert(next.as_str().to_owned()) {
-                            planned.push_back(next);
-                            report.analysis.diagnostics_requested += 1;
-                        }
-                    }
-                }
-                Err(error) => report
-                    .analysis
-                    .gaps
-                    .push(format!("Diagnostic probe incomplete: {error}")),
-            }
-        }
+        crate::discovery::run(
+            &first,
+            &url,
+            &mut transport,
+            &mut report,
+            options,
+            |page, report| {
+                collect(patterns, detector, page, report, options);
+            },
+        )?;
     }
     (report.version, report.version_status) = resolve(&report.evidence);
     report.verdict = assessment::assess(report.version_status, usable_http);
     report.checks = assessment::configuration_checks(&report.directives);
-    Ok(finish(report, transport, &patterns, &detector, options))
+    Ok(finish(report, transport, patterns, detector, options))
 }
 
 fn collect(
@@ -247,19 +236,45 @@ fn collect(
     options: &ScanOptions,
 ) {
     let source = display_url(&page.url);
-    let (proofs, signals) = detector.metadata(&page.metadata, patterns);
+    let (proofs, signals) =
+        detector.metadata_with_catalog(&page.metadata, patterns, options.fingerprints.as_deref());
     report.evidence.extend(proofs);
     selected_signals(report, signals, options);
-    let (proofs, signals, links) = detector.body(page, patterns);
-    report.evidence.extend(proofs);
-    selected_signals(report, signals, options);
-    for link in links {
+    crate::technology::merge(
+        &mut report.technologies,
+        detector.technologies(
+            &page.metadata,
+            !options.no_cookie_hints,
+            options.fingerprints.as_deref(),
+        ),
+    );
+    let body = detector.body(page, patterns, options.fingerprints.as_deref());
+    if body.html_limited {
+        let gap =
+            "HTML analysis limit reached (structure, depth, selected nodes or text); remaining markup was not analyzed."
+                .to_owned();
+        if !report.analysis.gaps.contains(&gap) {
+            report.analysis.gaps.push(gap);
+        }
+    }
+    report.evidence.extend(body.evidence);
+    selected_signals(report, body.signals, options);
+    crate::technology::merge(&mut report.technologies, body.technologies);
+    for link in body.links {
+        if let Ok(url) = reqwest::Url::parse(&link)
+            && !options.network.permits(&url)
+        {
+            continue;
+        }
         if options.discover
             && !options.no_linked_discovery
-            && report.discovered_paths.len() < 3
             && !report.discovered_paths.contains(&link)
         {
-            report.discovered_paths.push(link);
+            if report.discovered_paths.len() < options.max_linked_paths {
+                report.discovered_paths.push(link);
+            } else {
+                report.analysis.discovery_limited = true;
+            }
         }
     }
     let (mut versions, directives) = patterns.phpinfo(&page.body, &format!("{source} [phpinfo]"));
@@ -278,7 +293,16 @@ fn finish(
     options: &ScanOptions,
 ) -> ScanReport {
     for metadata in &transport.redirect_metadata {
-        let (proofs, signals) = detector.metadata(metadata, patterns);
+        let (proofs, signals) =
+            detector.metadata_with_catalog(metadata, patterns, options.fingerprints.as_deref());
+        crate::technology::merge(
+            &mut report.technologies,
+            detector.technologies(
+                metadata,
+                !options.no_cookie_hints,
+                options.fingerprints.as_deref(),
+            ),
+        );
         report.evidence.extend(proofs);
         selected_signals(&mut report, signals, options);
     }
@@ -287,6 +311,17 @@ fn finish(
         report.verdict = assessment::assess(report.version_status, report.analysis.http_verified);
     }
     report.version_candidates = candidates(&report.evidence);
+    if report.technologies.iter().any(|t| t.truncated) {
+        report.analysis.gaps.push("Technology observation limit reached; retained versions keep their sources, additional markers were omitted.".into());
+    }
+    if report.analysis.discovery_limited {
+        report.analysis.gaps.push("Disclosed diagnostic link limit reached; increase --max-linked-paths within the request budget.".into());
+    }
+    report.runtime = crate::technology::presence(
+        &report.technologies,
+        &report.evidence,
+        !options.no_hypotheses,
+    );
     if transport.observations.iter().any(|o| o.truncated) {
         report
             .analysis

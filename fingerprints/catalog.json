@@ -1,0 +1,1161 @@
+{
+  "technologies": [
+    {
+      "name": "PHP",
+      "kind": "runtime",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "(?i)^PHPSESSID$",
+          "channel": "cookie"
+        }
+      ]
+    },
+    {
+      "name": "Craft CMS",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [
+        "CraftCMS"
+      ],
+      "composer": [
+        "craftcms/cms"
+      ],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "(?i)^(?:CraftSessionId|CRAFT_CSRF_TOKEN)$",
+          "channel": "cookie"
+        },
+        {
+          "pattern": "/cpresources/",
+          "channel": "asset"
+        }
+      ]
+    },
+    {
+      "name": "WordPress",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "wordpress"
+      ],
+      "rules": [
+        {
+          "pattern": "(?i)^wordpress_(?:logged_in|sec)_",
+          "channel": "cookie"
+        },
+        {
+          "pattern": "/wp-(?:content|includes)/",
+          "channel": "asset"
+        },
+        {
+          "version_group": 1,
+          "channel": "header",
+          "pattern": "(?i)^v?([0-9]+(?:\\.[0-9]+){1,3}(?:[-+][a-z0-9._-]+)?)$",
+          "key": "x-wp-version"
+        }
+      ]
+    },
+    {
+      "name": "Drupal",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "drupal/core"
+      ],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "/(?:sites/default/|core/misc/drupal)",
+          "channel": "asset"
+        },
+        {
+          "channel": "header",
+          "pattern": "(?i)^(?:HIT|MISS|UNCACHEABLE)$",
+          "key": "x-drupal-cache"
+        },
+        {
+          "channel": "header",
+          "pattern": "(?i)^(?:HIT|MISS|UNCACHEABLE)$",
+          "key": "x-drupal-dynamic-cache"
+        }
+      ]
+    },
+    {
+      "name": "Joomla",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "joomla/joomla-cms"
+      ],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "/media/system/js/",
+          "channel": "asset"
+        }
+      ]
+    },
+    {
+      "name": "PrestaShop",
+      "kind": "commerce",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "prestashop/prestashop"
+      ],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "(?i)^prestashop-",
+          "channel": "cookie"
+        }
+      ]
+    },
+    {
+      "name": "Laravel",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "laravel/framework"
+      ],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "(?i)^laravel_session$",
+          "channel": "cookie"
+        },
+        {
+          "version_group": 1,
+          "channel": "header",
+          "pattern": "(?i)^v?([0-9]+(?:\\.[0-9]+){1,3}(?:[-+][a-z0-9._-]+)?)$",
+          "key": "x-laravel-version"
+        },
+        {
+          "version_group": 1,
+          "min_status": 400,
+          "pattern": "(?i)\\bLaravel\\s+v?([0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][a-z0-9._-]+)?)\\b",
+          "channel": "html",
+          "selector": "body",
+          "context": [
+            "(?i)\\bPHP\\s+[0-9]+\\.[0-9]+",
+            "(?i)(?:Exception|Error|UNHANDLED)"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Symfony",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "symfony/framework-bundle"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Yii",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [
+        "Yii Framework"
+      ],
+      "composer": [
+        "yiisoft/yii2"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "phpBB",
+      "kind": "forum",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "phpbb/phpbb"
+      ],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "(?i)^phpbb3_",
+          "channel": "cookie"
+        }
+      ]
+    },
+    {
+      "name": "Magento",
+      "kind": "commerce",
+      "runtime": "PHP",
+      "aliases": [
+        "Adobe Commerce"
+      ],
+      "composer": [
+        "magento/product-community-edition",
+        "magento/product-enterprise-edition"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "TYPO3",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "typo3/cms-core"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Concrete CMS",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [
+        "Concrete",
+        "Concrete5"
+      ],
+      "composer": [
+        "concrete5/core"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "MODX",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "modx/revolution"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Silverstripe",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "silverstripe/framework"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "October CMS",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [
+        "OctoberCMS"
+      ],
+      "composer": [
+        "october/rain"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Winter CMS",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [
+        "WinterCMS"
+      ],
+      "composer": [
+        "winter/wn-system-module"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Statamic",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "statamic/cms"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "ProcessWire",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "processwire/processwire"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "CodeIgniter",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "codeigniter4/framework"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "CakePHP",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "cakephp/cakephp"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Laminas",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "laminas/laminas-mvc"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Zend Framework",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "zendframework/zendframework"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Nette",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "nette/application"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Slim",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "slim/slim"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Moodle",
+      "kind": "lms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "moodle/moodle"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "MediaWiki",
+      "kind": "wiki",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "mediawiki/core"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "DokuWiki",
+      "kind": "wiki",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "splitbrain/dokuwiki"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "OpenCart",
+      "kind": "commerce",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "opencart/opencart"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Shopware",
+      "kind": "commerce",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "shopware/core"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Grav",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "getgrav/grav"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Kirby",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "getkirby/cms"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Pimcore",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "pimcore/pimcore"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Contao",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "contao/core-bundle"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Bolt",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "bolt/core"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Flarum",
+      "kind": "forum",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "flarum/core"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "MyBB",
+      "kind": "forum",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "XenForo",
+      "kind": "forum",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "vBulletin",
+      "kind": "forum",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "phpMyAdmin",
+      "kind": "database_admin",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "phpmyadmin/phpmyadmin"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Adminer",
+      "kind": "database_admin",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Roundcube",
+      "kind": "webmail",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "roundcube/roundcubemail"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Nextcloud",
+      "kind": "collaboration",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "nextcloud/server"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "ownCloud",
+      "kind": "collaboration",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "owncloud/core"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Matomo",
+      "kind": "analytics",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "matomo/matomo"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Livewire",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "livewire/livewire"
+      ],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "/livewire/(?:livewire(?:\\.min)?\\.js|update)$",
+          "channel": "asset"
+        }
+      ]
+    },
+    {
+      "name": "Inertia.js",
+      "kind": "framework",
+      "runtime": null,
+      "aliases": [
+        "Inertia"
+      ],
+      "composer": [
+        "inertiajs/inertia-laravel"
+      ],
+      "npm": [
+        "@inertiajs/core"
+      ],
+      "rules": []
+    },
+    {
+      "name": "Lumen",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "laravel/lumen-framework"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "ThinkPHP",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "topthink/framework"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "FuelPHP",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "fuel/fuel"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Phalcon",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "phalcon/phalcon"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Spiral",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "spiral/framework"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "TYPO3 Flow",
+      "kind": "framework",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "neos/flow"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Neos",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [
+        "neos/neos"
+      ],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "SPIP",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Dotclear",
+      "kind": "cms",
+      "runtime": "PHP",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Django",
+      "kind": "framework",
+      "runtime": "Python",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": [
+        {
+          "pattern": "(?i)^csrftoken$",
+          "channel": "cookie"
+        },
+        {
+          "pattern": "/static/admin/(?:css|js)/",
+          "channel": "asset"
+        }
+      ]
+    },
+    {
+      "name": "Flask",
+      "kind": "framework",
+      "runtime": "Python",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "FastAPI",
+      "kind": "framework",
+      "runtime": "Python",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Express",
+      "kind": "framework",
+      "runtime": "JavaScript",
+      "aliases": [
+        "Express.js"
+      ],
+      "composer": [],
+      "npm": [
+        "express"
+      ],
+      "rules": []
+    },
+    {
+      "name": "Next.js",
+      "kind": "framework",
+      "runtime": "JavaScript",
+      "aliases": [
+        "NextJS"
+      ],
+      "composer": [],
+      "npm": [
+        "next"
+      ],
+      "rules": [
+        {
+          "pattern": "/_next/static/",
+          "channel": "asset"
+        }
+      ]
+    },
+    {
+      "name": "Nuxt",
+      "kind": "framework",
+      "runtime": "JavaScript",
+      "aliases": [
+        "Nuxt.js",
+        "NuxtJS"
+      ],
+      "composer": [],
+      "npm": [
+        "nuxt"
+      ],
+      "rules": [
+        {
+          "pattern": "/_nuxt/",
+          "channel": "asset"
+        }
+      ]
+    },
+    {
+      "name": "NestJS",
+      "kind": "framework",
+      "runtime": "JavaScript",
+      "aliases": [
+        "Nest.js"
+      ],
+      "composer": [],
+      "npm": [
+        "@nestjs/core"
+      ],
+      "rules": []
+    },
+    {
+      "name": "SvelteKit",
+      "kind": "framework",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "@sveltejs/kit"
+      ],
+      "rules": []
+    },
+    {
+      "name": "Ruby on Rails",
+      "kind": "framework",
+      "runtime": "Ruby",
+      "aliases": [
+        "Rails"
+      ],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "ASP.NET",
+      "kind": "framework",
+      "runtime": ".NET",
+      "aliases": [
+        "ASP NET"
+      ],
+      "composer": [],
+      "npm": [],
+      "rules": [
+        {
+          "version_group": 1,
+          "channel": "header",
+          "pattern": "(?i)^v?([0-9]+(?:\\.[0-9]+){1,3}(?:[-+][a-z0-9._-]+)?)$",
+          "key": "x-aspnet-version"
+        }
+      ]
+    },
+    {
+      "name": "ASP.NET Core",
+      "kind": "framework",
+      "runtime": ".NET",
+      "aliases": [
+        "ASP NET Core"
+      ],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Spring Boot",
+      "kind": "framework",
+      "runtime": "Java",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Ghost",
+      "kind": "cms",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "ghost"
+      ],
+      "rules": []
+    },
+    {
+      "name": "Strapi",
+      "kind": "cms",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "@strapi/strapi"
+      ],
+      "rules": []
+    },
+    {
+      "name": "Directus",
+      "kind": "cms",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "directus"
+      ],
+      "rules": []
+    },
+    {
+      "name": "React",
+      "kind": "frontend",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "react"
+      ],
+      "rules": []
+    },
+    {
+      "name": "Vue.js",
+      "kind": "frontend",
+      "runtime": "JavaScript",
+      "aliases": [
+        "VueJS",
+        "Vue"
+      ],
+      "composer": [],
+      "npm": [
+        "vue"
+      ],
+      "rules": []
+    },
+    {
+      "name": "Angular",
+      "kind": "frontend",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "@angular/core"
+      ],
+      "rules": [
+        {
+          "version_group": 1,
+          "attribute": "ng-version",
+          "channel": "html",
+          "pattern": "^([0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][a-zA-Z0-9._-]+)?)$",
+          "selector": "[ng-version]"
+        }
+      ]
+    },
+    {
+      "name": "Svelte",
+      "kind": "frontend",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "svelte"
+      ],
+      "rules": []
+    },
+    {
+      "name": "jQuery",
+      "kind": "library",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "jquery"
+      ],
+      "rules": [
+        {
+          "version_group": 1,
+          "same_origin": false,
+          "channel": "asset",
+          "pattern": "(?i)/(?:jquery[-/])([0-9]+\\.[0-9]+\\.[0-9]+)(?:/jquery)?(?:\\.min)?\\.js$"
+        }
+      ]
+    },
+    {
+      "name": "Bootstrap",
+      "kind": "library",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "bootstrap"
+      ],
+      "rules": [
+        {
+          "version_group": 1,
+          "same_origin": false,
+          "channel": "asset",
+          "pattern": "(?i)/bootstrap(?:/|-)([0-9]+\\.[0-9]+\\.[0-9]+)/(?:css|js)/bootstrap(?:\\.bundle)?(?:\\.min)?\\.(?:css|js)$"
+        }
+      ]
+    },
+    {
+      "name": "Alpine.js",
+      "kind": "library",
+      "runtime": "JavaScript",
+      "aliases": [
+        "AlpineJS"
+      ],
+      "composer": [],
+      "npm": [
+        "alpinejs"
+      ],
+      "rules": []
+    },
+    {
+      "name": "HTMX",
+      "kind": "library",
+      "runtime": "JavaScript",
+      "aliases": [],
+      "composer": [],
+      "npm": [
+        "htmx.org"
+      ],
+      "rules": []
+    },
+    {
+      "name": "Tailwind CSS",
+      "kind": "library",
+      "runtime": null,
+      "aliases": [
+        "TailwindCSS"
+      ],
+      "composer": [],
+      "npm": [
+        "tailwindcss"
+      ],
+      "rules": []
+    },
+    {
+      "name": "nginx",
+      "kind": "server",
+      "runtime": null,
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Apache",
+      "kind": "server",
+      "runtime": null,
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "LiteSpeed",
+      "kind": "server",
+      "runtime": null,
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "OpenLiteSpeed",
+      "kind": "server",
+      "runtime": null,
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Microsoft IIS",
+      "kind": "server",
+      "runtime": null,
+      "aliases": [
+        "Microsoft-IIS"
+      ],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Caddy",
+      "kind": "server",
+      "runtime": null,
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "OpenResty",
+      "kind": "server",
+      "runtime": null,
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Apache Tomcat",
+      "kind": "server",
+      "runtime": "Java",
+      "aliases": [
+        "Tomcat"
+      ],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Gunicorn",
+      "kind": "server",
+      "runtime": "Python",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Uvicorn",
+      "kind": "server",
+      "runtime": "Python",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Werkzeug",
+      "kind": "server",
+      "runtime": "Python",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Kestrel",
+      "kind": "server",
+      "runtime": ".NET",
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Varnish",
+      "kind": "proxy",
+      "runtime": null,
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    },
+    {
+      "name": "Traefik",
+      "kind": "proxy",
+      "runtime": null,
+      "aliases": [],
+      "composer": [],
+      "npm": [],
+      "rules": []
+    }
+  ],
+  "schema_version": 1
+}

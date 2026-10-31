@@ -115,13 +115,14 @@ pub fn watch(args: WatchArgs, json_output: bool, ui: &Ui) -> Result<u8> {
     let mut previous = vec![];
     let mut events = vec![];
     let mut final_report = Report::new(vec![]);
+    let scanner = scan::Scanner::new()?;
     for round in 1..=args.iterations {
         if round > 1 {
             std::thread::sleep(Duration::from_secs(args.interval.into()));
         }
         let mut results = vec![];
         for (index, target) in targets.iter().enumerate() {
-            let report = scan::scan_configured(target, limits.clone(), &options)?;
+            let report = scanner.scan(target, limits.clone(), &options)?;
             let state = state(&report)?;
             let changed = previous.get(index) != Some(&state);
             if changed {
@@ -170,7 +171,7 @@ fn state(report: &scan::ScanReport) -> Result<Value> {
         json!({"version":report.version,"verdict":report.verdict,"detection_level":report.analysis.detection_level,
         "coverage_complete":report.analysis.coverage_complete,"gaps":report.analysis.gaps,
         "final_url":report.final_url,"evidence":evidence,"signals":report.signals,"directives":report.directives,
-        "tls":report.tls,"waf":report.waf,
+        "tls":report.tls,"waf":report.waf,"technologies":report.technologies,"runtime":report.runtime,
         "statuses":report.observations.iter().map(|o|o.status).collect::<Vec<_>>()}),
     )
 }

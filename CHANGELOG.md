@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — 2026-10-31
+
+- Recognize Craft CMS and a broader PHP application catalog through structured HTML and HTTP declarations, selected same-origin assets, Composer packages and canonical cookie names.
+- Embed a 94-product declarative fingerprint catalog spanning PHP applications, other frameworks, frontend libraries and servers; accept strictly validated custom extensions with `--fingerprints`.
+- Retain framework versions, including contextual Laravel error-panel declarations, selected version headers and production lock packages, without converting them into PHP version proof.
+- Observe npm production dependencies/lock packages and unknown provider declarations; infer PHP only from explicit catalog runtime associations.
+- Preserve grouped technology observations, per-observation versions and provenance independently of PHP version evidence and CVE assessment.
+- Report PHP presence separately as declared, inferred or unknown; hypothesis suppression retains technology observations while disabling runtime inference.
+- Prioritize disclosed diagnostics and deep-scan robots/Composer metadata within existing request budgets; add `--max-linked-paths` with explicit coverage gaps on limits.
+- Reuse compiled detectors across batch/watch targets and bound HTML traversal and technology-observation retention.
+- Add deterministic Orion and adversarial reconnaissance regressions; document evidence limits and Exegol validation requirements.
+
 ## 0.2.2 — 2026-10-31
 
 - Extract allowlisted configuration settings from plain-text phpinfo diagnostics as well as HTML.

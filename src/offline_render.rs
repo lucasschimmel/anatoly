@@ -76,6 +76,11 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b1420;border-radius
             target["analysis"]["coverage_complete"] == true
         ));
         for (label, value) in [
+            (
+                "Observed technologies and provenance",
+                &target["technologies"],
+            ),
+            ("PHP runtime presence", &target["runtime"]),
             ("Selected version", &target["version"]),
             (
                 "Version candidates and proofs",
