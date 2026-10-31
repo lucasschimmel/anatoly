@@ -1,6 +1,8 @@
 Anatoly is a Rust CLI for bounded public PHP evidence and PHP2Shell exposure assessment.
 
 Includes scan, exposure, headers, watch, compare, report, policy, explain and doctor modes.
+Version 0.2.0 adds custom headers, environment-based authentication, DNS overrides,
+bounded wordlists, passive TLS/WAF evidence and live/offline CSV/SARIF exports.
 Linux x86_64 and ARM64 binaries require glibc >= 2.35, OpenSSL 3 and CA certificates.
 Windows x86_64 uses the Windows TLS trust store.
 

@@ -84,12 +84,13 @@ pub(crate) fn render(ui: &Ui, index: usize, total: usize, report: &ScanReport) {
             VersionConfidence::Unknown => "unknown · no usable PHP version",
             VersionConfidence::SingleSource => "single source · uncorroborated",
             VersionConfidence::ConsistentSamples => "consistent application samples",
-            VersionConfidence::Corroborated => "corroborated public declarations",
+            VersionConfidence::Corroborated => "corroborated remote declarations",
             VersionConfidence::Conflicting => "conflicting · manual verification required",
         },
         DIM,
     );
     crate::evidence_view::render(ui, report);
+    crate::transport_view::render(ui, report);
     field(
         ui,
         "Response sampling",
@@ -168,7 +169,7 @@ pub(crate) fn summary(ui: &Ui, summary: &Summary) {
         ui,
         "PHP corroborated",
         &format!(
-            "{} · matching public evidence methods",
+            "{} · matching remote evidence methods",
             summary.php_corroborated
         ),
         DIM,

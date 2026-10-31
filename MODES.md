@@ -33,3 +33,5 @@ anatoly doctor https://app.example/ --https-only --no-proxy --json
 `--dry-run` sends no requests. Exposure expands the scan plan; headers shows configured request caps (actual mode performs one chain per URL); watch shows one round's plan without sleeping. `doctor` always sends zero requests. See [FLAGS.md](FLAGS.md) for shared controls and [OFFLINE-MODES.md](OFFLINE-MODES.md) for formats and policy rules.
 
 Header reference semantics: [HSTS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security), [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy). Header presence alone does not establish browser protection.
+
+Audit controls: scan/exposure export CSV/SARIF; report also accepts --format html|csv|sarif. Live modes share custom headers, environment authentication and DNS overrides. TLS/WAF peer observations remain distinct from security verdicts. See [AUDIT-CONTROLS.md](AUDIT-CONTROLS.md).

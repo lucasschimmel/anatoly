@@ -57,7 +57,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b1420;border-radius
 .muted{color:#9bb0c4}footer{border-top:1px solid #254158;margin-top:40px;padding-top:20px;font-size:13px}
 @media print{body,article,pre{background:white;color:black}main{padding:0}article{break-inside:avoid}h3,.eyebrow,.badge{color:#174e68}}
 </style></head><body><main><header><div class="eyebrow">PHP EXPOSURE INTELLIGENCE</div><h1>ANATOLY</h1>
-<p class="muted">Public HTTP evidence · offline assessment report</p></header>
+<p class="muted">HTTP evidence · offline assessment report</p></header>
 <p>No security certification: version declarations, hypotheses and missing evidence remain distinct. A matching release number does not attest vendor patches or running worker builds.</p>"#,
     );
     html.push_str(&format!(
@@ -83,6 +83,8 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b1420;border-radius
             ),
             ("All explicit version evidence", &target["evidence"]),
             ("Unverified hypotheses", &target["signals"]),
+            ("TLS peer metadata", &target["tls"]),
+            ("WAF and edge observations", &target["waf"]),
             ("Coverage and missing evidence", &target["analysis"]),
             ("Recorded checks", &target["checks"]),
             ("Recommendations", &target["recommendations"]),
