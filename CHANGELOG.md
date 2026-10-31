@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 — 2026-10-31
+
+- Extract allowlisted configuration settings from plain-text phpinfo diagnostics as well as HTML.
+- Expand PHP2Shell configuration observations to 16 settings with explicit limits on partial mitigations.
+- Recheck upstream fix floors against PHP advisories and add version-matrix and configuration regression coverage.
+
 ## 0.2.1 — 2026-10-31
 
 - Embed the 24-path core discovery list in the binary with `--builtin-wordlist`.
