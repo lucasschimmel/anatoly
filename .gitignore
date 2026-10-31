@@ -7,5 +7,7 @@
 /preview.png
 /banner-v2.png
 *.log
+__pycache__/
+*.pyc
 .env
 .env.*

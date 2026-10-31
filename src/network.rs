@@ -4,6 +4,7 @@ use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct NetworkPolicy {
+    pub request: crate::request_settings::RequestSettings,
     pub connect_timeout: Option<Duration>,
     pub target_timeout: Option<Duration>,
     pub max_redirects: usize,
@@ -18,6 +19,7 @@ pub struct NetworkPolicy {
 impl Default for NetworkPolicy {
     fn default() -> Self {
         Self {
+            request: crate::request_settings::RequestSettings::default(),
             connect_timeout: None,
             target_timeout: None,
             max_redirects: 5,
@@ -33,6 +35,10 @@ impl Default for NetworkPolicy {
 
 impl NetworkPolicy {
     pub fn validate(&self) -> Result<()> {
+        self.request.validate()?;
+        if !self.request.resolves.is_empty() && (!self.no_proxy || self.proxy.is_some()) {
+            bail!("--resolve requires --no-proxy so the configured IP is used directly");
+        }
         if self.max_redirects > 10 {
             bail!("Maximum redirects must be between 0 and 10");
         }
@@ -81,11 +87,12 @@ impl NetworkPolicy {
                 Certificate::from_pem(pem).context("Invalid public PEM CA certificate")?,
             );
         }
-        Ok(builder)
+        self.request.configure(builder)
     }
 
     pub fn permits(&self, url: &Url) -> bool {
-        (!self.https_only || url.scheme() == "https")
+        self.request.permits(url)
+            && (!self.https_only || url.scheme() == "https")
             && (self.allow_hosts.is_empty()
                 || url
                     .host_str()

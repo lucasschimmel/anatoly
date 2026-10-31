@@ -1,80 +1,14 @@
+pub use crate::scan_report::{Report, ScanReport};
 use crate::{
-    analysis::{Analysis, Summary},
-    assessment::{self, Check, CveAssessment, Verdict},
-    fingerprint::{Directive, Evidence, Patterns, VersionCandidate, candidates, resolve},
-    http::{Limits, Observation, Transport, allowed_redirect, display_url, validate_url},
-    policy::{self, PhpVersion, VersionStatus},
+    analysis::Analysis,
+    assessment::{self, Verdict},
+    fingerprint::{Patterns, candidates, resolve},
+    http::{Limits, Transport, allowed_redirect, display_url, validate_url},
+    policy::VersionStatus,
     recon::{DEEP_PATHS, Detector, Signal, merge_signals},
     scan_options::ScanOptions,
 };
-use serde::Serialize;
 use std::collections::HashSet;
-
-#[derive(Debug, Serialize)]
-pub struct ScanReport {
-    pub version_candidates: Vec<VersionCandidate>,
-    pub signals: Vec<Signal>,
-    pub discovered_paths: Vec<String>,
-    pub analysis: Analysis,
-    pub target: String,
-    pub final_url: Option<String>,
-    pub verdict: Verdict,
-    pub version: Option<PhpVersion>,
-    pub version_status: VersionStatus,
-    pub evidence: Vec<Evidence>,
-    pub directives: Vec<Directive>,
-    pub checks: Vec<Check>,
-    pub cves: Vec<CveAssessment>,
-    pub observations: Vec<Observation>,
-    pub requests_sent: usize,
-    pub limitations: Vec<String>,
-    pub recommendations: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Report {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub run_configuration: Option<serde_json::Value>,
-    pub summary: Summary,
-    pub tool: &'static str,
-    pub version: &'static str,
-    pub policy_date: &'static str,
-    pub advisories: [&'static str; 2],
-    pub targets: Vec<ScanReport>,
-}
-
-impl Report {
-    pub fn new(targets: Vec<ScanReport>) -> Self {
-        Self {
-            run_configuration: None,
-            summary: Summary::from_targets(&targets),
-            tool: "anatoly",
-            version: env!("CARGO_PKG_VERSION"),
-            policy_date: policy::POLICY_DATE,
-            advisories: policy::ADVISORIES,
-            targets,
-        }
-    }
-    pub fn exit_code(&self) -> u8 {
-        if self.targets.iter().any(|s| s.verdict == Verdict::Error) {
-            3
-        } else if self
-            .targets
-            .iter()
-            .any(|s| s.verdict == Verdict::PotentiallyAffected)
-        {
-            1
-        } else if self
-            .targets
-            .iter()
-            .any(|s| s.verdict == Verdict::Inconclusive)
-        {
-            2
-        } else {
-            0
-        }
-    }
-}
 
 /// One target, one isolated request budget. Diagnostics remain on the exact same origin.
 pub fn scan(
@@ -145,6 +79,7 @@ pub fn scan_configured(
     let patterns = Patterns::new()?;
     let detector = Detector::new()?;
     let mut report = ScanReport {
+        tls: vec![], waf: vec![],
         version_candidates: vec![], signals: vec![], discovered_paths: vec![],
         analysis: Analysis::new(samples, if discover { paths.len() } else { 0 }),
         target: display_url(&url), final_url: None, verdict: Verdict::Inconclusive, version: None,
@@ -219,6 +154,24 @@ pub fn scan_configured(
                     .push(format!("Application sample failed: {error}")),
             }
         }
+    }
+    if options.waf_probe && usable_http {
+        if transport.remaining() {
+            let mut probe = first.url.clone();
+            probe.query_pairs_mut().append_pair("anatoly_probe", "1");
+            match transport.get(&probe) {
+                Ok(page) => collect(&patterns, &detector, &page, &mut report, options),
+                Err(_) => report
+                    .analysis
+                    .gaps
+                    .push("The optional benign WAF-marker request could not complete.".into()),
+            }
+        } else {
+            report.analysis.gaps.push(
+                "Request/time budget prevented the optional benign WAF-marker request.".into(),
+            );
+        }
+        report.limitations.push("The optional WAF probe uses a benign query marker. No detected marker or unchanged response proves that a WAF is absent or blocks PHP2Shell.".into());
     }
     if discover && usable_http {
         let mut seen = HashSet::from([first.url.as_str().to_owned(), url.as_str().to_owned()]);
@@ -381,6 +334,8 @@ fn finish(
     report.cves = assessment::cve_assessments(&report.verdict);
     report.observations = transport.observations;
     report.requests_sent = transport.requests;
+    report.tls = transport.tls;
+    report.waf = transport.waf;
     report
 }
 

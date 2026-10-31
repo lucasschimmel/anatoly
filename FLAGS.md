@@ -126,3 +126,5 @@ values or PEM contents are exported.
 ```
 
 The shared scan options also apply to live modes; see [MODES.md](MODES.md) for mode-specific semantics and restrictions.
+
+Version 0.2.0 adds -H/--header, --header-env, --basic-auth-env, --resolve, --wordlist, --waf-probe, --csv and --sarif. See [Audit controls](AUDIT-CONTROLS.md) for scope, privacy, budgets and examples.

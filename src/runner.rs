@@ -18,6 +18,14 @@ pub fn run(args: ScanArgs, json: bool, ui: &Ui) -> Result<u8> {
     let targets = targets(&args)?;
     let (limits, options) = configure(&args)?;
     validate_scope(&targets, &options)?;
+    crate::exports::preflight(&[
+        args.output.as_deref(),
+        args.csv.as_deref(),
+        args.sarif.as_deref(),
+    ])?;
+    if args.dry_run && (args.csv.is_some() || args.sarif.is_some()) {
+        bail!("CSV/SARIF require completed scan results, not a dry run");
+    }
     if args.output.as_ref().is_some_and(|p| p.exists()) {
         bail!("Output already exists; choose a new report filename");
     }
@@ -56,6 +64,15 @@ pub fn run(args: ScanArgs, json: bool, ui: &Ui) -> Result<u8> {
     }
     if let Some(path) = &args.output {
         write_new(path, &report)?;
+    }
+    if args.csv.is_some() || args.sarif.is_some() {
+        let value = serde_json::to_value(&report)?;
+        if let Some(path) = &args.csv {
+            crate::exports::write(path, "csv", &value)?;
+        }
+        if let Some(path) = &args.sarif {
+            crate::exports::write(path, "sarif", &value)?;
+        }
     }
     if json {
         println!("{}", serde_json::to_string_pretty(&report)?);
@@ -101,7 +118,9 @@ pub(crate) fn exit_code(report: &Report, policy: FailOn) -> u8 {
 }
 
 pub(crate) fn configure(args: &ScanArgs) -> Result<(Limits, ScanOptions)> {
-    if matches!(args.profile, Profile::Quick) && (args.deep || !args.diagnostic_path.is_empty()) {
+    if matches!(args.profile, Profile::Quick)
+        && (args.deep || !args.diagnostic_path.is_empty() || args.wordlist.is_some())
+    {
         bail!(
             "The quick profile cannot be combined with --deep or --diagnostic-path; choose balanced or thorough"
         );
@@ -137,6 +156,7 @@ pub(crate) fn configure(args: &ScanArgs) -> Result<(Limits, ScanOptions)> {
         None
     };
     let network = NetworkPolicy {
+        request: crate::cli_inputs::request(args)?,
         connect_timeout: Some(Duration::from_secs(args.connect_timeout.into())),
         target_timeout: Some(Duration::from_secs(args.target_timeout.into())),
         max_redirects: if args.no_redirects {
@@ -162,15 +182,12 @@ pub(crate) fn configure(args: &ScanArgs) -> Result<(Limits, ScanOptions)> {
             samples: args.samples.unwrap_or(default_samples).into(),
             discover: !args.no_discover && !matches!(args.profile, Profile::Quick),
             deep,
-            paths: if args.diagnostic_path.is_empty() {
-                vec!["phpinfo.php".into(), "info.php".into()]
-            } else {
-                args.diagnostic_path.clone()
-            },
+            paths: crate::cli_inputs::paths(args)?,
             network,
             no_cookie_hints: args.no_cookie_hints,
             no_hypotheses: args.no_hypotheses,
             no_linked_discovery: args.no_linked_discovery,
+            waf_probe: args.waf_probe,
         },
     ))
 }
@@ -191,7 +208,10 @@ pub(crate) fn configuration(
         "no_hypotheses": options.no_hypotheses, "no_linked_discovery": options.no_linked_discovery,
         "proxy_configured": options.network.proxy.is_some(), "environment_proxies_disabled": options.network.no_proxy,
         "custom_ca": options.network.ca_pem.is_some(), "tls_validation": true,
-        "fail_on": args.fail_on, "scope": "same-origin public HTTP observations; no security certification" })
+        "custom_header_count": options.network.request.headers.len(), "authentication_configured":args.basic_auth_env.is_some(),
+        "resolution_overrides":options.network.request.resolves.iter().map(|(h,ip)|serde_json::json!({"host":h,"address":ip.to_string()})).collect::<Vec<_>>(),
+        "wordlist_configured":args.wordlist.is_some(),"waf_probe":options.waf_probe,
+        "fail_on": args.fail_on, "scope": "same-origin HTTP observations; no security certification" })
 }
 
 pub(crate) fn validate_scope(targets: &[String], options: &ScanOptions) -> Result<()> {

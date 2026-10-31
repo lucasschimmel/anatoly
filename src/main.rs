@@ -1,4 +1,6 @@
 mod cli;
+mod cli_inputs;
+mod exports;
 mod live_modes;
 mod offline;
 mod runner;
@@ -105,8 +107,17 @@ fn run() -> Result<u8> {
                 &ui,
             );
         }
-        Some(Command::Report { input, output }) => {
-            return offline::run("report", &input, None, Some(&output), cli.json, &ui);
+        Some(Command::Report {
+            input,
+            output,
+            format,
+        }) => {
+            let mode = match format {
+                cli::ReportFormat::Html => "report",
+                cli::ReportFormat::Csv => "csv",
+                cli::ReportFormat::Sarif => "sarif",
+            };
+            return offline::run(mode, &input, None, Some(&output), cli.json, &ui);
         }
         Some(Command::Policy { input, rules }) => {
             return offline::run("policy", &input, rules.as_deref(), None, cli.json, &ui);

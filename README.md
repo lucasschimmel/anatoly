@@ -11,6 +11,9 @@ No exploit payloads, command execution or security certification.
 Commands: `scan`, `exposure`, `headers`, `watch`, `compare`, `report`, `policy`,
 `explain`, `doctor`, `version`, `builds` and `credits`.
 
+New in 0.2.0: custom headers, environment-based authentication, DNS overrides,
+diagnostic wordlists, TLS/edge evidence and CSV/SARIF. See [Audit controls](AUDIT-CONTROLS.md).
+
 ## Install
 
 ### Linux / Exegol — no Rust required
@@ -18,9 +21,9 @@ Commands: `scan`, `exposure`, `headers`, `watch`, `compare`, `report`, `policy`,
 Download and inspect the installer, then install a versioned release:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.1.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.1.0
+sh /tmp/anatoly-install.sh --version v0.2.0
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly scan -u https://your-app.example/ -o report.json
@@ -34,13 +37,13 @@ for a persistent installation under `/opt/my-resources/bin`.
 
 ### Windows
 
-Download `anatoly-v0.1.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
+Download `anatoly-v0.2.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
 [Releases](https://github.com/lucasschimmel/anatoly/releases). Compare the archive's
 SHA-256 with its line in SHA256SUMS, extract it, then run the executable:
 
 ```powershell
-Get-FileHash .\anatoly-v0.1.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
-Expand-Archive .\anatoly-v0.1.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
+Get-FileHash .\anatoly-v0.2.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Expand-Archive .\anatoly-v0.2.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
 .\anatoly\anatoly.exe --version
 .\anatoly\anatoly.exe scan -u https://your-app.example/
 ```
@@ -197,7 +200,8 @@ configuration errors exit 3. **Exit 0 is not a security certification.**
 - At most 256 KiB per response (`--max-body`, 1 KiB–1 MiB); truncation is reported.
 - Redirects and diagnostic paths stay on the exact same scheme/host/port.
   HTTP-to-HTTPS redirects are blocked too: supply the canonical HTTPS URL.
-- No cookie persistence and no application credentials. URLs with userinfo are
+- No cookie persistence or login automation. Authentication headers are opt-in and
+  pinned to one exact origin. URLs with userinfo are
   rejected. Query values are omitted from reports, but are sent to the supplied URL.
 - Reports include evidence only, not complete HTTP bodies or session cookies.
 - At most 256 distinct targets, a target-list file of at most 1 MiB, and no retries.
