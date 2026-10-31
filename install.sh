@@ -62,7 +62,9 @@ ACTUAL=$(sha256sum "$WORK_DIR/$ASSET" | awk '{print $1}')
 [ "$ACTUAL" = "$EXPECTED" ] || fail 'Checksum mismatch; nothing installed'
 # Extract exactly one expected member, ignoring any additional archive paths.
 tar -xzf "$WORK_DIR/$ASSET" -C "$WORK_DIR" -- anatoly
-[ -f "$WORK_DIR/anatoly" ] && [ ! -L "$WORK_DIR/anatoly" ] || fail 'Archive did not contain a regular binary'
+if [ ! -f "$WORK_DIR/anatoly" ] || [ -L "$WORK_DIR/anatoly" ]; then
+    fail 'Archive did not contain a regular binary'
+fi
 chmod 755 "$WORK_DIR/anatoly"
 "$WORK_DIR/anatoly" --version || fail 'Binary cannot run; check glibc/OpenSSL requirements or build from source'
 mkdir -p "$BIN_DIR"
