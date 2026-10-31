@@ -1,0 +1,37 @@
+# Anatoly: focused PHP runtime and diagnostic discovery (24 unique paths).
+# Relative to the final application URL; higher-priority candidates come first.
+# Filename candidates are heuristics, not standard PHP endpoints or vulnerability proofs.
+
+# Runtime diagnostics and dedicated version endpoints.
+phpinfo.php
+info.php
+php_info.php
+php-info.php
+phpversion.php
+php-version.php
+
+# Symfony WebProfiler PHP information, if this optional route is exposed.
+_profiler/phpinfo
+
+# Application-defined diagnostic/status routes.
+version.php
+status.php
+diagnostics.php
+diagnostic.php
+server-info.php
+phpinfo
+php-info
+info
+version
+status
+
+# Diagnostics sometimes left inside development/tool directories.
+debug/phpinfo.php
+debug/info.php
+test/phpinfo.php
+tests/phpinfo.php
+tools/phpinfo.php
+
+# Dependency metadata: constraints and build hints only, never runtime proof.
+composer.json
+composer.lock
