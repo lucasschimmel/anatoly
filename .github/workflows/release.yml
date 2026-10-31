@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: package (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev
+      - name: Install pinned Rust
+        run: rustup toolchain install 1.99.0 --profile minimal --component rustfmt --component clippy
+      - name: Validate release version
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cargo metadata --locked --no-deps --format-version 1 > package.json
+          python -c 'import json,os,re; tag=os.environ["RELEASE_TAG"]; assert re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+",tag); assert json.load(open("package.json"))["packages"][0]["version"]==tag[1:]'
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - name: Test Linux installer
+        if: runner.os == 'Linux'
+        run: bash scripts/test-installer.sh
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Package Linux binary
+        if: runner.os == 'Linux'
+        env:
+          TARGET: ${{ matrix.target }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p stage dist
+          cp "target/$TARGET/release/anatoly" stage/
+          stage/anatoly --version
+          stage/anatoly doctor https://app.example/ --no-proxy --json | python3 -c 'import json,sys; assert json.load(sys.stdin)["network_requests_sent"]==0'
+          cp LICENSE README.md FLAGS.md MODES.md OFFLINE-MODES.md PUBLIC-DETECTION.md EXEGOL.md stage/
+          tar -czf "dist/anatoly-$RELEASE_TAG-$TARGET.tar.gz" -C stage anatoly LICENSE README.md FLAGS.md MODES.md OFFLINE-MODES.md PUBLIC-DETECTION.md EXEGOL.md
+      - name: Package Windows binary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          TARGET: ${{ matrix.target }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          New-Item -ItemType Directory -Force stage,dist | Out-Null
+          Copy-Item "target/$env:TARGET/release/anatoly.exe" stage/
+          & stage/anatoly.exe --version
+          $result = & stage/anatoly.exe doctor https://app.example/ --no-proxy --json | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $result.network_requests_sent -ne 0) { throw 'Release smoke failed' }
+          Copy-Item LICENSE,README.md,FLAGS.md,MODES.md,OFFLINE-MODES.md,PUBLIC-DETECTION.md,EXEGOL.md stage/
+          Compress-Archive -Path stage/* -DestinationPath "dist/anatoly-$env:RELEASE_TAG-$env:TARGET.zip"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: package-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: package-*
+          path: dist
+          merge-multiple: true
+      - name: Publish complete release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cp install.sh dist/
+          (cd dist && sha256sum *.tar.gz *.zip install.sh > SHA256SUMS)
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --title "Anatoly $RELEASE_TAG" --notes-file .github/RELEASE-NOTES.md
+
+  verify-install:
+    needs: publish
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install and smoke-test published Linux release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          sh install.sh --version "$RELEASE_TAG" --bin-dir "$RUNNER_TEMP/anatoly-smoke"
+          "$RUNNER_TEMP/anatoly-smoke/anatoly" --version
+          "$RUNNER_TEMP/anatoly-smoke/anatoly" doctor https://app.example/ --no-proxy --json | python3 -c 'import json,sys; assert json.load(sys.stdin)["network_requests_sent"]==0'
