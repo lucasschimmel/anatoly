@@ -14,6 +14,9 @@ Commands: `scan`, `exposure`, `headers`, `watch`, `compare`, `report`, `policy`,
 New in 0.2.0: custom headers, environment-based authentication, DNS overrides,
 diagnostic wordlists, TLS/edge evidence and CSV/SARIF. See [Audit controls](AUDIT-CONTROLS.md).
 
+An ordered [24-path PHP discovery wordlist](wordlists/README.md) is available for
+version and diagnostic checks within the existing request budget.
+
 ## Install
 
 ### Linux / Exegol — no Rust required
