@@ -10,9 +10,9 @@ Use a source build if your container does not meet these requirements.
 Run these commands **inside your Exegol container**, not on the host:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.1/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.2/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.2.1 --bin-dir "$HOME/.local/bin"
+sh /tmp/anatoly-install.sh --version v0.2.2 --bin-dir "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly doctor https://app.example/ --no-proxy --json
@@ -23,13 +23,28 @@ The installer verifies the binary archive's SHA-256 before installation, runs on
 files. Existing binaries require explicit `--force` to replace. Checksums verify
 download integrity; they are not a separate publisher signature.
 
+## Upgrade an existing installation
+
+Download and inspect the installer, then explicitly replace the existing binary:
+
+```sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.2/install.sh -o /tmp/anatoly-install.sh
+less /tmp/anatoly-install.sh
+sh /tmp/anatoly-install.sh --version v0.2.2 --bin-dir "$HOME/.local/bin" --force
+"$HOME/.local/bin/anatoly" --version
+```
+
+Use the same `--bin-dir` as your existing installation, such as
+`/opt/my-resources/bin` for a shared installation. The installer verifies the archive
+checksum before replacing the binary.
+
 ## Persist across containers
 
 Exegol mounts your configured host `my-resources` directory inside containers at
 `/opt/my-resources`. With that share enabled, install the binary there:
 
 ```sh
-sh /tmp/anatoly-install.sh --version v0.2.1 --bin-dir /opt/my-resources/bin
+sh /tmp/anatoly-install.sh --version v0.2.2 --bin-dir /opt/my-resources/bin
 export PATH="/opt/my-resources/bin:$PATH"
 anatoly --version
 ```

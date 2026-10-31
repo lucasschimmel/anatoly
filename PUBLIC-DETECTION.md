@@ -73,6 +73,67 @@ session shapes and timing do not establish an exact PHP patch. No security
 percentage or release is fabricated from them. Legacy logo/Easter-egg probes
 and third-party fingerprint databases are not used.
 
+## PHP2Shell coverage review — 2026-10-31
+
+Anatoly follows the PHP project's categories: **CVE-2026-109618** concerns
+memory corruption after an out-of-memory interruption, including during request
+cleanup; **CVE-2026-109619** concerns request-owned state retained across requests
+and consumed before reinitialization. The upstream fix floors are **8.2.35,
+8.3.36, 8.4.27 and 8.5.12**. See the [OOM advisory](https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w)
+and [stale-state advisory](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp).
+
+| Observation | Assessment boundary |
+|---|---|
+| Version below its upstream floor | Potentially affected; exploitation has not been attempted |
+| Version meets its upstream floor | Fix floor observed; vendor patches and the running worker build remain unverified |
+| Older or vendor-maintained branch | Public version text cannot establish backport status; inspect the vendor package |
+| FPM/FastCGI | Startup failure may terminate a worker, but application-stage stale-state paths remain possible |
+| Upload progress disabled | Removes the demonstrated early session path, not every stale-state path |
+| `memory_limit=-1` | Removes the predictable PHP limit, not underlying allocation failure |
+| `display_errors=Off` | Hides output; it does not prevent the stale-state consumer |
+| PHP 8.5 `fatal_error_backtraces=0` | Removes one producer, not every state family |
+
+The configuration distinctions follow the two PHP advisories above. A disclosed
+setting describes the diagnostic request's context; it cannot establish values
+in every pool or application route. Missing settings remain unknown.
+
+[Wiz's research](https://www.wiz.io/blog/php2shell-php-rce) describes multiple
+primitives, including memory disclosure, session lifecycle, fatal backtraces and
+OPcache. CMS demonstrations do not make the issue CMS-specific; an application
+need not call `session_start()` for early upload-progress handling to run.
+[Akamai's walkthrough](https://www.akamai.com/blog/security-research/understanding-php2shell-everything-you-need-to-know)
+lists prerequisites for its described upload-progress chain. Anatoly does not
+treat those prerequisites as exclusions covering every PHP2Shell variant.
+[Tanium's response guidance](https://www.tanium.com/blog/php2shell-responding-to-cve-2026-109618-and-cve-2026-109619)
+also emphasizes inventory and package updates; dated observations about public
+exploit reliability do not establish protection for an architecture or SAPI.
+
+Recognizable HTML and plain-text `phpinfo()` diagnostics retain the same 16
+allowlisted settings:
+
+```text
+session.upload_progress.enabled  session.serialize_handler
+memory_limit                    post_max_size
+upload_max_filesize             file_uploads
+max_file_uploads                max_input_vars
+max_input_nesting_level         max_multipart_body_parts
+enable_post_data_reading        display_errors
+server api                      fatal_error_backtraces
+opcache.enable                  opcache.enable_cli
+```
+
+Each observation preserves its source, local value and available master value;
+conflicting local observations remain visible. Arbitrary phpinfo rows and
+environment dumps are not retained. Configuration observations never turn a
+potentially affected release into a secure or certified result.
+
+The local `devploit-php2shell` clone was reviewed statically for its version
+matrix and documented preconditions. Its memory-exhaustion probes were not
+imported into Anatoly or executed. The local `anonmoty-PHP2SHELL` working tree
+contained no source files at review time. Regression fixtures verify public
+evidence handling; they do not demonstrate an exploit or certify a deployed
+server's patch state.
+
 ## Primary references
 
 - [PHP session settings](https://www.php.net/manual/en/session.configuration.php)
