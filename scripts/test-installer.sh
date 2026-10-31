@@ -49,9 +49,9 @@ cat > "$TEST_ROOT/payload/anatoly" <<'EOF'
 printf 'anatoly 0.1.0\n'
 EOF
 chmod 755 "$TEST_ROOT/mock-bin/uname" "$TEST_ROOT/mock-bin/curl" "$TEST_ROOT/payload/anatoly"
-export TEST_FIXTURE_DIR=$TEST_ROOT/fixture
-export TEST_DOWNLOAD_LOG=$TEST_ROOT/downloads.log
-export PATH=$TEST_ROOT/mock-bin:$PATH
+export TEST_FIXTURE_DIR="$TEST_ROOT/fixture"
+export TEST_DOWNLOAD_LOG="$TEST_ROOT/downloads.log"
+export PATH="$TEST_ROOT/mock-bin:$PATH"
 ASSET=anatoly-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
 tar -czf "$TEST_FIXTURE_DIR/$ASSET" -C "$TEST_ROOT/payload" anatoly
 cp "$TEST_FIXTURE_DIR/$ASSET" "$TEST_FIXTURE_DIR/anatoly-v0.1.0-aarch64-unknown-linux-gnu.tar.gz"
