@@ -1,5 +1,9 @@
 # Public PHP detection
 
+Version 0.3.0 adds separate `technologies` and `runtime` observations;
+see [Reconnaissance and the Orion regression](RECONNAISSANCE.md). The version
+levels and CVE semantics below remain unchanged.
+
 `analysis.detection_level` reports four levels independently of the CVE verdict:
 
 | Level | Meaning |
@@ -32,11 +36,11 @@ PHP version, change a CVE fix-floor comparison, or certify security.**
 | Runtime JSON | `php_version`, `phpversion`, `PHP_VERSION_ID`, `php.version`, optionally below runtime/environment/system/php/info | Generic package `version` fields are ignored; no body or environment dump |
 | PHP-version endpoint | Numeric body on `phpversion.php` or `php-version.php` | Numeric content on generic `version.php` is not assumed to be PHP |
 | HTTP error | Explicit PHP token inside an error-page address/footer | A footer can describe the frontend; no guarantee the app uses the same runtime |
-| HTML/CMS | Generator markers and PHP-like link/form paths | Application versions are not PHP versions; ordinary PHP text is only a clue |
-| Composer | Root PHP requirements and simulated platform settings if publicly exposed | Requirements, lock data and build overrides do not establish the live runtime |
+| HTML/CMS | Exact generator attributes, visible attribution, selected same-origin asset paths and PHP-like links/forms | Application versions are not PHP versions; inert/documentary examples do not declare an application |
+| Composer | Root PHP requirements, simulated platform settings and exact selected application packages on Composer routes | Requirements, lock data and build overrides do not establish the live PHP runtime; development packages are ignored for technology identification |
 | Deprecations | Dynamic-property or null-parameter diagnostic wording | Static pages or custom messages can imitate diagnostics; ranges are hypotheses only |
 | Cache | Positive Age, X-Cache/CF-Cache-Status HIT | Cached samples cannot establish worker diversity |
-| Discovery | Up to three recognized same-origin diagnostic links from HTML/robots | Queries/fragments removed; no general crawl, file inclusion or authentication bypass |
+| Discovery | Recognized same-origin diagnostic paths from structured HTML/robots; default 3, thorough/deep 16, configurable to 128 | Queries/fragments removed; shared request budget remains authoritative; no general crawl, file inclusion or authentication bypass |
 
 Dynamic-property wording suggests a possible `>=8.2,<9` range;
 null-to-non-nullable wording suggests `>=8.1`. Neither establishes an exact
@@ -50,7 +54,7 @@ so a late declaration cannot silently hide a contradiction.
 ## Discovery boundaries
 
 The normal CLI keeps an eight-request budget and three application samples.
-`--deep` sets a 32-request default budget and appends these public candidates:
+`--deep` sets a 32-request default budget and includes these public candidates:
 
 ```text
 php_info.php       php-info.php       phpversion.php    php-version.php
@@ -59,13 +63,18 @@ version            status             composer.json     composer.lock
 robots.txt         __anatoly_missing__.php
 ```
 
+Disclosed diagnostics are scheduled ahead of fallback guesses. Deep discovery
+prioritizes `robots.txt`, `composer.json` and `composer.lock`; newly disclosed
+diagnostics then take priority over the remaining guesses. `--max-linked-paths`
+controls retained disclosed paths without increasing the request budget.
+
 The last candidate checks an ordinary missing-page response, not an injected
 error. Explicit `--max-requests` always wins. `--no-discover` disables additional
 path requests. A blocked, failed or budget-skipped planned route is reflected
 in coverage; an absent diagnostic page does not prove protection.
 
-Linked discovery accepts only specific diagnostic filenames, remains on the
-same scheme/host/port and deduplicates routes. Generic action/navigation links
+Linked discovery accepts specific diagnostic filenames, selected extensionless
+names and Composer metadata, remains on the same scheme/host/port and deduplicates routes. Generic action/navigation links
 are never followed. No POST, malformed multipart, OOM, command or exploit is sent.
 
 TLS certificates, IP/geolocation, server versions, CMS versions, favicon hashes,

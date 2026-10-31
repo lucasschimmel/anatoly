@@ -27,6 +27,7 @@ pub struct Observation {
 }
 
 pub struct PublicMetadata {
+    pub technology_cookies: Vec<String>,
     pub url: Url,
     pub status: u16,
     pub headers: Vec<(String, String)>,
@@ -55,6 +56,7 @@ pub struct Page {
 }
 
 pub struct Transport {
+    fingerprints: Option<std::sync::Arc<crate::fingerprints::Catalog>>,
     client: Client,
     limits: Limits,
     pub requests: usize,
@@ -93,6 +95,9 @@ pub fn allowed_redirect(from: &Url, to: &Url) -> bool {
 }
 
 impl Transport {
+    pub fn set_fingerprints(&mut self, catalog: std::sync::Arc<crate::fingerprints::Catalog>) {
+        self.fingerprints = Some(catalog);
+    }
     pub fn new(limits: Limits) -> Result<Self> {
         Self::with_policy(limits, NetworkPolicy::default())
     }
@@ -119,6 +124,7 @@ impl Transport {
             .build()
             .context("Building HTTP client")?;
         Ok(Self {
+            fingerprints: None,
             client,
             limits,
             requests: 0,
@@ -195,7 +201,12 @@ impl Transport {
                 .filter_map(|v| v.to_str().ok())
                 .collect::<Vec<_>>()
                 .join(", ");
-            let metadata = public_metadata(&url, status.as_u16(), response.headers());
+            let metadata = crate::http_metadata::public_metadata(
+                &url,
+                status.as_u16(),
+                response.headers(),
+                self.fingerprints.as_deref(),
+            );
             let cached = metadata.cached;
             let mut bytes = Vec::new();
             response
@@ -245,135 +256,5 @@ impl Transport {
                 self.waf.push(evidence);
             }
         }
-    }
-}
-
-fn public_metadata(url: &Url, status: u16, headers: &reqwest::header::HeaderMap) -> PublicMetadata {
-    let mut selected = vec![];
-    let mut security_headers = vec![];
-    for name in [
-        "strict-transport-security",
-        "content-security-policy",
-        "x-content-type-options",
-        "x-frame-options",
-        "referrer-policy",
-        "content-type",
-    ] {
-        for value in headers.get_all(name) {
-            security_headers.push((name.to_owned(), value.to_str().unwrap_or("").to_owned()));
-        }
-    }
-    for name in [
-        "server",
-        "x-powered-by",
-        "x-php-version",
-        "php-version",
-        "x-runtime",
-        "x-runtime-version",
-        "x-generator",
-    ] {
-        for value in headers.get_all(name).iter().filter_map(|v| v.to_str().ok()) {
-            // Parse the complete field; cutting it can hide a later contradictory version.
-            selected.push((name.to_owned(), value.to_owned()));
-        }
-    }
-    // Retain only canonical, recognized names. Never retain cookie values or opaque suffixes.
-    let mut cookies: Vec<CookieShape> = vec![];
-    for cookie in headers
-        .get_all("set-cookie")
-        .iter()
-        .filter_map(|h| h.to_str().ok())
-    {
-        let name = cookie.split_once('=').map_or("", |(n, _)| n.trim());
-        let lower = name.to_ascii_lowercase();
-        let canonical = if lower == "phpsessid" {
-            "PHPSESSID"
-        } else if lower == "laravel_session" {
-            "laravel_session"
-        } else if lower.starts_with("wordpress_logged_in_") {
-            "wordpress_logged_in_*"
-        } else if lower.starts_with("wordpress_sec_") {
-            "wordpress_sec_*"
-        } else if lower.starts_with("prestashop-") {
-            "PrestaShop-*"
-        } else if lower.starts_with("phpbb3_") {
-            "phpbb3_*"
-        } else {
-            continue;
-        };
-        if !cookies.iter().any(|c| c.name == canonical) {
-            let value = cookie
-                .split_once('=')
-                .map_or("", |(_, v)| v.split(';').next().unwrap_or(""));
-            let alphabet = if !value.is_empty() && value.chars().all(|c| c.is_ascii_hexdigit()) {
-                "hexadecimal"
-            } else if !value.is_empty() && value.chars().all(|c| c.is_ascii_alphanumeric()) {
-                "alphanumeric"
-            } else {
-                "other/custom"
-            };
-            let attributes: Vec<_> = cookie
-                .split(';')
-                .skip(1)
-                .map(|s| s.trim().to_ascii_lowercase())
-                .collect();
-            let same_sites: Vec<_> = attributes
-                .iter()
-                .filter(|a| a.split('=').next().is_some_and(|n| n.trim() == "samesite"))
-                .collect();
-            let same_site = if same_sites.len() > 1 {
-                "multiple attributes; ambiguous"
-            } else if same_sites
-                .first()
-                .is_some_and(|a| a.as_str() == "samesite=lax")
-            {
-                "Lax"
-            } else if same_sites
-                .first()
-                .is_some_and(|a| a.as_str() == "samesite=strict")
-            {
-                "Strict"
-            } else if same_sites
-                .first()
-                .is_some_and(|a| a.as_str() == "samesite=none")
-            {
-                "None"
-            } else {
-                "not disclosed"
-            };
-            cookies.push(CookieShape {
-                name: canonical.into(),
-                length: value.len(),
-                alphabet,
-                secure: attributes.iter().any(|a| a == "secure"),
-                http_only: attributes.iter().any(|a| a == "httponly"),
-                same_site,
-            });
-        } else if let Some(existing) = cookies.iter_mut().find(|c| c.name == canonical) {
-            // Canonical names can collapse distinct paths/domains or opaque suffixes.
-            // Never infer safe attributes from the first of multiple declarations.
-            existing.secure = false;
-            existing.http_only = false;
-            existing.same_site = "multiple declarations; ambiguous";
-        }
-    }
-    let age = headers
-        .get("age")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.parse::<u64>().ok())
-        .is_some_and(|v| v > 0);
-    let cache_hit = ["x-cache", "cf-cache-status"].iter().any(|name| {
-        headers
-            .get(*name)
-            .and_then(|v| v.to_str().ok())
-            .is_some_and(|v| v.to_ascii_lowercase().contains("hit"))
-    });
-    PublicMetadata {
-        url: url.clone(),
-        status,
-        headers: selected,
-        security_headers,
-        cookies,
-        cached: age || cache_hit,
     }
 }

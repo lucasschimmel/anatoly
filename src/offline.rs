@@ -121,6 +121,8 @@ fn snapshot(target: &Value) -> Value {
         "analysis",
         "directives",
         "signals",
+        "technologies",
+        "runtime",
         "tls",
         "waf",
     ] {
@@ -182,6 +184,7 @@ fn explain(report: &Value) -> Value {
         "detection_level":t["analysis"]["detection_level"],
         "version_candidates":t["version_candidates"], "proofs":t["evidence"],
         "hypotheses":t["signals"], "coverage_complete":t["analysis"]["coverage_complete"],
+        "technologies":t["technologies"],"runtime":t["runtime"],"coverage_scope":t["analysis"]["coverage_scope"],
         "tls":t["tls"],"waf":t["waf"],
         "missing_evidence":t["analysis"]["gaps"], "skipped_checks":t["analysis"]["skipped_checks"],
         "limitations":t["limitations"], "recommendations":t["recommendations"]

@@ -9,6 +9,50 @@ const DIM: &str = "38;5;245";
 const TEXT: &str = "38;5;252";
 
 pub(crate) fn render(ui: &Ui, report: &ScanReport) {
+    field(
+        ui,
+        "PHP presence",
+        match report.runtime.status {
+            crate::technology::Presence::Declared => "declared · remotely supplied evidence",
+            crate::technology::Presence::Inferred => {
+                "inferred · application markers, version unknown"
+            }
+            crate::technology::Presence::Unknown => "unknown · no enabled presence evidence",
+        },
+        TEXT,
+    );
+    for technology in &report.technologies {
+        field(
+            ui,
+            "Technology",
+            &format!(
+                "{}{} · {}",
+                technology.name,
+                if technology.versions.is_empty() {
+                    String::new()
+                } else {
+                    format!(" {}", technology.versions.join(" / "))
+                },
+                technology.kind
+            ),
+            "38;5;81",
+        );
+        for observation in &technology.observations {
+            field(
+                ui,
+                "Observed via",
+                &format!(
+                    "{} · HTTP {} · {}",
+                    observation.method, observation.http_status, observation.source
+                ),
+                DIM,
+            );
+            if let Some(version) = &observation.version {
+                field(ui, "Marker version", version, TEXT);
+            }
+            paragraph(ui, &observation.detail, DIM);
+        }
+    }
     if let Some(final_url) = &report.final_url
         && final_url != &report.target
     {

@@ -33,12 +33,12 @@ while [ "$#" -gt 0 ]; do
 done
 printf '%s\n' "$url" >> "$TEST_DOWNLOAD_LOG"
 case "$url" in
-    https://github.com/lucasschimmel/anatoly/releases/download/v0.2.2/*) ;;
+    https://github.com/lucasschimmel/anatoly/releases/download/v0.3.0/*) ;;
     *) exit 90 ;;
 esac
 name=${url##*/}
 case "$name" in
-    SHA256SUMS|anatoly-v0.2.2-x86_64-unknown-linux-gnu.tar.gz|anatoly-v0.2.2-aarch64-unknown-linux-gnu.tar.gz) ;;
+    SHA256SUMS|anatoly-v0.3.0-x86_64-unknown-linux-gnu.tar.gz|anatoly-v0.3.0-aarch64-unknown-linux-gnu.tar.gz) ;;
     *) exit 91 ;;
 esac
 cp "$TEST_FIXTURE_DIR/$name" "$destination"
@@ -46,19 +46,19 @@ EOF
 cat > "$TEST_ROOT/payload/anatoly" <<'EOF'
 #!/bin/sh
 [ "$#" = 1 ] && [ "$1" = --version ] || exit 92
-printf 'anatoly 0.2.2\n'
+printf 'anatoly 0.3.0\n'
 EOF
 chmod 755 "$TEST_ROOT/mock-bin/uname" "$TEST_ROOT/mock-bin/curl" "$TEST_ROOT/payload/anatoly"
 export TEST_FIXTURE_DIR="$TEST_ROOT/fixture"
 export TEST_DOWNLOAD_LOG="$TEST_ROOT/downloads.log"
 export PATH="$TEST_ROOT/mock-bin:$PATH"
-ASSET=anatoly-v0.2.2-x86_64-unknown-linux-gnu.tar.gz
+ASSET=anatoly-v0.3.0-x86_64-unknown-linux-gnu.tar.gz
 tar -czf "$TEST_FIXTURE_DIR/$ASSET" -C "$TEST_ROOT/payload" anatoly
-cp "$TEST_FIXTURE_DIR/$ASSET" "$TEST_FIXTURE_DIR/anatoly-v0.2.2-aarch64-unknown-linux-gnu.tar.gz"
+cp "$TEST_FIXTURE_DIR/$ASSET" "$TEST_FIXTURE_DIR/anatoly-v0.3.0-aarch64-unknown-linux-gnu.tar.gz"
 
 reset_downloads() { : > "$TEST_DOWNLOAD_LOG"; }
 valid_checksums() {
-    (cd "$TEST_FIXTURE_DIR" && sha256sum --text "$ASSET" anatoly-v0.2.2-aarch64-unknown-linux-gnu.tar.gz) > "$TEST_FIXTURE_DIR/SHA256SUMS"
+    (cd "$TEST_FIXTURE_DIR" && sha256sum --text "$ASSET" anatoly-v0.3.0-aarch64-unknown-linux-gnu.tar.gz) > "$TEST_FIXTURE_DIR/SHA256SUMS"
 }
 expect_failure() {
     if sh "$INSTALLER" "$@" > "$TEST_ROOT/output.log" 2>&1; then
@@ -80,7 +80,7 @@ sh "$INSTALLER" --bin-dir "$SPACED_DIR" > "$TEST_ROOT/output.log" 2>&1 || {
     exit 1
 }
 [ -x "$SPACED_DIR/anatoly" ]
-[ "$("$SPACED_DIR/anatoly" --version)" = 'anatoly 0.2.2' ]
+[ "$("$SPACED_DIR/anatoly" --version)" = 'anatoly 0.3.0' ]
 [ "$(wc -l < "$TEST_DOWNLOAD_LOG" | tr -d ' ')" = 2 ]
 pass 'valid checksum installs a working binary into a path containing spaces'
 
@@ -94,7 +94,7 @@ pass 'existing binary is preserved without force and without network activity'
 
 reset_downloads
 sh "$INSTALLER" --bin-dir "$SPACED_DIR" --force > "$TEST_ROOT/output.log" 2>&1
-[ "$("$SPACED_DIR/anatoly" --version)" = 'anatoly 0.2.2' ]
+[ "$("$SPACED_DIR/anatoly" --version)" = 'anatoly 0.3.0' ]
 pass 'force replaces an existing regular binary after verification'
 
 # A bad digest must leave an existing destination untouched even when forced.
@@ -125,7 +125,7 @@ unset TEST_ARCH
 pass 'unsupported architecture is rejected before downloading'
 
 reset_downloads
-for invalid_version in '../bad' 'v0.2.2;echo bad' 'v0.2.2-beta' ''; do
+for invalid_version in '../bad' 'v0.3.0;echo bad' 'v0.3.0-beta' ''; do
     expect_failure --version "$invalid_version" --bin-dir "$TEST_ROOT/invalid-version"
 done
 expect_no_downloads
