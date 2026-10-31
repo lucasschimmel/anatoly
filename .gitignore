@@ -1,0 +1,11 @@
+/target/
+/reports/
+/previews/
+/.codex/
+/.claude/
+/dist/
+/preview.png
+/banner-v2.png
+*.log
+.env
+.env.*
