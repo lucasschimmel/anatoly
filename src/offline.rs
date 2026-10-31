@@ -29,6 +29,19 @@ pub fn run(
         )?,
         "explain" => (explain(&report), 0),
         "policy" => evaluate(&report, second)?,
+        "csv" | "sarif" => {
+            crate::exports::write(
+                output.context("Export requires --output")?,
+                command,
+                &report,
+            )?;
+            emit(
+                &json!({"type":"offline_export","format":command,"written":true,"network_requests_sent":0}),
+                json_output,
+                ui,
+            )?;
+            return Ok(0);
+        }
         "report" => {
             let path = output.context("HTML report requires --output with a new filename")?;
             render::write_html(path, &report)?;
@@ -108,6 +121,8 @@ fn snapshot(target: &Value) -> Value {
         "analysis",
         "directives",
         "signals",
+        "tls",
+        "waf",
     ] {
         result[key] = target[key].clone();
     }
@@ -167,6 +182,7 @@ fn explain(report: &Value) -> Value {
         "detection_level":t["analysis"]["detection_level"],
         "version_candidates":t["version_candidates"], "proofs":t["evidence"],
         "hypotheses":t["signals"], "coverage_complete":t["analysis"]["coverage_complete"],
+        "tls":t["tls"],"waf":t["waf"],
         "missing_evidence":t["analysis"]["gaps"], "skipped_checks":t["analysis"]["skipped_checks"],
         "limitations":t["limitations"], "recommendations":t["recommendations"]
     })).collect();

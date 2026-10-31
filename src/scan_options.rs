@@ -2,6 +2,7 @@ use crate::network::NetworkPolicy;
 
 #[derive(Clone, Debug)]
 pub struct ScanOptions {
+    pub waf_probe: bool,
     pub samples: usize,
     pub discover: bool,
     pub deep: bool,
@@ -15,6 +16,7 @@ pub struct ScanOptions {
 impl Default for ScanOptions {
     fn default() -> Self {
         Self {
+            waf_probe: false,
             samples: 3,
             discover: true,
             deep: false,
