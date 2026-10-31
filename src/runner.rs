@@ -119,10 +119,13 @@ pub(crate) fn exit_code(report: &Report, policy: FailOn) -> u8 {
 
 pub(crate) fn configure(args: &ScanArgs) -> Result<(Limits, ScanOptions)> {
     if matches!(args.profile, Profile::Quick)
-        && (args.deep || !args.diagnostic_path.is_empty() || args.wordlist.is_some())
+        && (args.deep
+            || !args.diagnostic_path.is_empty()
+            || args.wordlist.is_some()
+            || args.builtin_wordlist)
     {
         bail!(
-            "The quick profile cannot be combined with --deep or --diagnostic-path; choose balanced or thorough"
+            "The quick profile cannot be combined with discovery paths or wordlists; choose balanced or thorough"
         );
     }
     let (default_samples, default_budget, default_delay) = match args.profile {
@@ -139,7 +142,11 @@ pub(crate) fn configure(args: &ScanArgs) -> Result<(Limits, ScanOptions)> {
         timeout: Duration::from_secs(args.timeout.into()),
         max_requests: args
             .max_requests
-            .unwrap_or(if deep { 32 } else { default_budget })
+            .unwrap_or(if deep || args.builtin_wordlist {
+                32
+            } else {
+                default_budget
+            })
             .into(),
         max_body: args.max_body as usize,
         delay: spacing.max(rate_spacing),
@@ -210,7 +217,7 @@ pub(crate) fn configuration(
         "custom_ca": options.network.ca_pem.is_some(), "tls_validation": true,
         "custom_header_count": options.network.request.headers.len(), "authentication_configured":args.basic_auth_env.is_some(),
         "resolution_overrides":options.network.request.resolves.iter().map(|(h,ip)|serde_json::json!({"host":h,"address":ip.to_string()})).collect::<Vec<_>>(),
-        "wordlist_configured":args.wordlist.is_some(),"waf_probe":options.waf_probe,
+        "wordlist_configured":args.wordlist.is_some()||args.builtin_wordlist,"builtin_wordlist":args.builtin_wordlist,"waf_probe":options.waf_probe,
         "fail_on": args.fail_on, "scope": "same-origin HTTP observations; no security certification" })
 }
 

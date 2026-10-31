@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-10-31
+
+- Embed the 24-path core discovery list in the binary with `--builtin-wordlist`.
+- Default embedded discovery to 32 requests while preserving explicit caps and ordinary scans.
+- Keep custom wordlists composable and include the embedded asset in Cargo packages.
+
 ## 0.2.0 — 2026-10-31
 
 - Custom headers and environment-based authentication pinned to one origin.

@@ -14,8 +14,9 @@ Commands: `scan`, `exposure`, `headers`, `watch`, `compare`, `report`, `policy`,
 New in 0.2.0: custom headers, environment-based authentication, DNS overrides,
 diagnostic wordlists, TLS/edge evidence and CSV/SARIF. See [Audit controls](AUDIT-CONTROLS.md).
 
-An ordered [24-path PHP discovery wordlist](wordlists/README.md) is available for
-version and diagnostic checks within the existing request budget.
+The [24-path PHP discovery wordlist](wordlists/README.md) is embedded in the binary
+from 0.2.1: `anatoly scan -u https://app.example/ --builtin-wordlist`. No separate
+download is needed. This flag defaults to 32 requests; explicit caps remain authoritative.
 
 ## Install
 
@@ -24,9 +25,9 @@ version and diagnostic checks within the existing request budget.
 Download and inspect the installer, then install a versioned release:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.2.1/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.2.0
+sh /tmp/anatoly-install.sh --version v0.2.1
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly scan -u https://your-app.example/ -o report.json
@@ -40,13 +41,13 @@ for a persistent installation under `/opt/my-resources/bin`.
 
 ### Windows
 
-Download `anatoly-v0.2.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
+Download `anatoly-v0.2.1-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
 [Releases](https://github.com/lucasschimmel/anatoly/releases). Compare the archive's
 SHA-256 with its line in SHA256SUMS, extract it, then run the executable:
 
 ```powershell
-Get-FileHash .\anatoly-v0.2.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
-Expand-Archive .\anatoly-v0.2.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
+Get-FileHash .\anatoly-v0.2.1-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Expand-Archive .\anatoly-v0.2.1-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
 .\anatoly\anatoly.exe --version
 .\anatoly\anatoly.exe scan -u https://your-app.example/
 ```

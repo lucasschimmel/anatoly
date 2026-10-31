@@ -7,7 +7,19 @@ PHP does not create these URLs automatically: their existence depends on deploym
 
 ## Use
 
-Download the file from the repository if Anatoly was installed from a binary release:
+From Anatoly **0.2.1**, the list is compiled into the binary. No file, repository
+checkout or download is needed at runtime:
+
+```sh
+anatoly scan -u https://app.example/ --builtin-wordlist -o scan.json
+```
+
+The flag raises the default request cap to 32; an explicit `--max-requests` always
+wins. It can be combined with `--wordlist paths.txt` to append custom paths after
+the embedded list; duplicate paths are removed. External files keep their 64-path/
+64 KiB limit. The chosen embedded mode is recorded in JSON configuration.
+
+On Anatoly 0.2.0, or when deliberately using an editable external copy:
 
 ```sh
 curl -fL https://raw.githubusercontent.com/lucasschimmel/anatoly/main/wordlists/anatoly-core.txt -o anatoly-core.txt
@@ -39,13 +51,14 @@ To assess the site root, supply its root URL separately.
 With balanced discovery, default paths unchanged, three successful application
 samples and this list, the initial plan is **3 samples + 24 diagnostic URLs =27
 HTTP requests**. `phpinfo.php` and `info.php` already exist in the default plan and
-are deduplicated. A cap of 32 leaves five requests for redirects and newly discovered
+are deduplicated. The embedded flag defaults to a cap of32, leaving five requests for redirects and newly discovered
 diagnostic links. This is a conditional calculation, not a guarantee of completion.
 
 For a more predictable fixed list, add `--no-linked-discovery`. Redirects still use
 the same budget. Avoid `--deep`/the thorough profile when reproducing the 27-request
 plan: they add extra built-in paths and can change sample counts. With the default
-eight-request cap, the whole list will not fit and coverage will remain incomplete.
+eight-request cap of ordinary scans (or an explicitly lowered cap), the whole list
+will not fit and coverage will remain incomplete.
 
 The file remains below Anatoly's 64-path / 64 KiB limits. It has no queries, fragments,
 absolute URLs or path-traversal entries. It deliberately focuses on metadata rather

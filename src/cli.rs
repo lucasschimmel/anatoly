@@ -127,6 +127,9 @@ pub struct ScanArgs {
     /// Append at most 64 diagnostic paths from a file (64 KiB max).
     #[arg(long, help_heading = "Analysis")]
     pub wordlist: Option<PathBuf>,
+    /// Use the embedded 24-path PHP discovery list; default request cap becomes 32.
+    #[arg(long, help_heading = "Analysis")]
+    pub builtin_wordlist: bool,
     /// Add one benign query-marker request within the shared target budget.
     #[arg(long, help_heading = "Analysis")]
     pub waf_probe: bool,

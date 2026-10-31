@@ -4,6 +4,8 @@ use anyhow::{Context, Result, bail};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use std::{fs, io::Read};
 
+const BUILTIN_WORDLIST: &str = include_str!("../wordlists/anatoly-core.txt");
+
 fn environment(name: &str) -> Result<String> {
     if name.is_empty()
         || name.len() > 128
@@ -62,10 +64,13 @@ pub fn paths(args: &ScanArgs) -> Result<Vec<String>> {
     } else {
         args.diagnostic_path.clone()
     };
+    if (args.builtin_wordlist || args.wordlist.is_some()) && args.no_discover {
+        bail!("Wordlist discovery cannot be combined with --no-discover");
+    }
+    if args.builtin_wordlist {
+        append_paths(&mut paths, BUILTIN_WORDLIST)?;
+    }
     if let Some(path) = &args.wordlist {
-        if args.no_discover {
-            bail!("--wordlist requires discovery");
-        }
         let mut contents = String::new();
         fs::File::open(path)
             .context("Opening diagnostic wordlist")?
@@ -75,28 +80,33 @@ pub fn paths(args: &ScanArgs) -> Result<Vec<String>> {
         if contents.len() > 65_536 {
             bail!("Diagnostic wordlist exceeds 64 KiB");
         }
-        let extra: Vec<_> = contents
-            .lines()
-            .map(str::trim)
-            .filter(|p| !p.is_empty() && !p.starts_with('#'))
-            .collect();
-        if extra.len() > 64 {
-            bail!("Diagnostic wordlist exceeds 64 paths");
-        }
-        for entry in extra {
-            if entry.len() > 256
-                || entry.contains(['?', '#', '\\'])
-                || entry.contains("://")
-                || entry.chars().any(char::is_control)
-            {
-                bail!(
-                    "Diagnostic wordlist accepts paths only, without query values, fragments or control characters; input omitted"
-                );
-            }
-            if !paths.iter().any(|p| p == entry) {
-                paths.push(entry.to_owned());
-            }
-        }
+        append_paths(&mut paths, &contents)?;
     }
     Ok(paths)
+}
+
+fn append_paths(paths: &mut Vec<String>, contents: &str) -> Result<()> {
+    let extra: Vec<_> = contents
+        .lines()
+        .map(str::trim)
+        .filter(|p| !p.is_empty() && !p.starts_with('#'))
+        .collect();
+    if extra.len() > 64 {
+        bail!("Diagnostic wordlist exceeds 64 paths");
+    }
+    for entry in extra {
+        if entry.len() > 256
+            || entry.contains(['?', '#', '\\'])
+            || entry.contains("://")
+            || entry.chars().any(char::is_control)
+        {
+            bail!(
+                "Diagnostic wordlist accepts paths only, without query values, fragments or control characters; input omitted"
+            );
+        }
+        if !paths.iter().any(|p| p == entry) {
+            paths.push(entry.to_owned());
+        }
+    }
+    Ok(())
 }
