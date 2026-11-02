@@ -11,11 +11,13 @@ No exploit payloads, command execution or security certification.
 Commands: `scan`, `exposure`, `headers`, `watch`, `compare`, `report`, `policy`,
 `explain`, `doctor`, `version`, `builds` and `credits`.
 
-New in **0.3.0**: an extensible 94-product technology catalog,
-framework-version observations including Laravel, structured HTML analysis,
-source-preserving observations, separate PHP presence and version assessment,
-and prioritized bounded discovery. See [fingerprint catalogs](FINGERPRINTS.md)
-and [Reconnaissance design and Orion findings](RECONNAISSANCE.md).
+New in **0.4.0**: bounded, explainable version hypotheses when exact versions are
+unavailable, including Laravel template and renderer families; broader Composer/npm
+inventories, WordPress component observations, and more robust diagnostic discovery
+and HTML analysis. Hypotheses retain their
+sources and limits separately from declared versions and never establish a CVE
+or patch verdict. See [fingerprint catalogs](FINGERPRINTS.md) and
+[Reconnaissance design and validation](RECONNAISSANCE.md).
 
 New in 0.2.0: custom headers, environment-based authentication, DNS overrides,
 diagnostic wordlists, TLS/edge evidence and CSV/SARIF. See [Audit controls](AUDIT-CONTROLS.md).
@@ -31,9 +33,9 @@ download is needed. This flag defaults to 32 requests; explicit caps remain auth
 Download and inspect the installer, then install a versioned release:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.3.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.4.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.3.0
+sh /tmp/anatoly-install.sh --version v0.4.0
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly scan -u https://your-app.example/ -o report.json
@@ -47,13 +49,13 @@ for a persistent installation under `/opt/my-resources/bin`.
 
 ### Windows
 
-Download `anatoly-v0.3.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
+Download `anatoly-v0.4.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
 [Releases](https://github.com/lucasschimmel/anatoly/releases). Compare the archive's
 SHA-256 with its line in SHA256SUMS, extract it, then run the executable:
 
 ```powershell
-Get-FileHash .\anatoly-v0.3.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
-Expand-Archive .\anatoly-v0.3.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
+Get-FileHash .\anatoly-v0.4.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Expand-Archive .\anatoly-v0.4.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
 .\anatoly\anatoly.exe --version
 .\anatoly\anatoly.exe scan -u https://your-app.example/
 ```

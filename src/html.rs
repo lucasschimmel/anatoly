@@ -8,6 +8,8 @@ const MAX_OPEN_TAG_TOKENS: usize = 1024;
 
 #[derive(Default)]
 pub(crate) struct Facts {
+    pub base_href: Option<String>,
+    pub footers: Vec<String>,
     pub document: Option<Html>,
     pub generators: Vec<String>,
     pub attributions: Vec<String>,
@@ -17,6 +19,13 @@ pub(crate) struct Facts {
 }
 
 impl Facts {
+    pub fn base_url(&self, document: &reqwest::Url) -> reqwest::Url {
+        self.base_href
+            .as_deref()
+            .and_then(|href| document.join(href).ok())
+            .filter(|url| matches!(url.scheme(), "http" | "https"))
+            .unwrap_or_else(|| document.clone())
+    }
     pub fn parse(body: &str) -> Self {
         let boundary = body
             .match_indices('<')
@@ -51,19 +60,22 @@ fn walk(
     }
     let name = node.value().name();
     if inert(node) {
-        if name == "script" && !hidden(node) {
+        if name == "script" && !article && !hidden(node) {
             retain_attribute(node, "src", &mut facts.resources);
         }
         return;
     }
     let article = article || name == "article";
-    attributes(node, facts);
+    attributes(node, article, facts);
     let attribution = !article && matches!(name, "p" | "small" | "footer" | "address" | "div");
     if attribution {
         buffers.push(Some(String::new()));
     }
     for child in node.children() {
         if let Some(text) = child.value().as_text() {
+            if article {
+                continue;
+            }
             for buffer in buffers.iter_mut() {
                 if let Some(value) = buffer {
                     if value.len() + text.len() <= MAX_ATTRIBUTION_BYTES {
@@ -79,25 +91,32 @@ fn walk(
     }
     if attribution && let Some(Some(text)) = buffers.pop() {
         let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+        if name == "address" {
+            facts.footers.push(text.clone());
+        }
         if text.to_ascii_lowercase().starts_with("powered by ") {
             facts.attributions.push(text);
         }
     }
 }
 
-fn attributes(node: ElementRef<'_>, facts: &mut Facts) {
+fn attributes(node: ElementRef<'_>, article: bool, facts: &mut Facts) {
     match node.value().name() {
+        "base" if !article && facts.base_href.is_none() => {
+            facts.base_href = node.attr("href").map(str::to_owned);
+        }
         "meta"
-            if node
-                .attr("name")
-                .is_some_and(|n| n.eq_ignore_ascii_case("generator")) =>
+            if !article
+                && node
+                    .attr("name")
+                    .is_some_and(|n| n.eq_ignore_ascii_case("generator")) =>
         {
             retain_attribute(node, "content", &mut facts.generators)
         }
         "a" => retain_attribute(node, "href", &mut facts.links),
         "form" => retain_attribute(node, "action", &mut facts.links),
-        "img" => retain_attribute(node, "src", &mut facts.resources),
-        "link" => retain_attribute(node, "href", &mut facts.resources),
+        "img" if !article => retain_attribute(node, "src", &mut facts.resources),
+        "link" if !article => retain_attribute(node, "href", &mut facts.resources),
         _ => {}
     }
 }

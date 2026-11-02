@@ -6,6 +6,30 @@ use crate::{
 };
 
 impl Catalog {
+    pub(crate) fn cookie_hypotheses(
+        &self,
+        name: &str,
+        status: u16,
+    ) -> Vec<(String, crate::hypothesis::VersionHint)> {
+        if name.len() > 256 {
+            return vec![];
+        }
+        self.rules
+            .iter()
+            .filter(|r| {
+                r.rule.channel == Channel::Cookie
+                    && status >= r.rule.min_status
+                    && r.pattern.is_match(name)
+            })
+            .filter_map(|r| {
+                r.rule
+                    .hypothesis
+                    .clone()
+                    .map(|hint| (self.definitions[r.technology].name.clone(), hint))
+            })
+            .collect()
+    }
+
     pub(crate) fn cookie_technologies(&self, name: &str, status: u16) -> Vec<String> {
         if name.len() > 256 {
             return vec![];
@@ -36,9 +60,9 @@ impl Catalog {
                         .version_group
                         .and_then(|g| captures.get(g))
                         .and_then(|m| version(m.as_str()));
-                    self.record(
+                    self.record_rule(
                         output,
-                        rule.technology,
+                        rule,
                         version,
                         &format!("{} [{name}]", display_url(&data.url)),
                         "header",
@@ -51,8 +75,9 @@ impl Catalog {
 
     pub(crate) fn resources(&self, facts: &Facts, page: &Page) -> Vec<Technology> {
         let mut output = vec![];
+        let base = facts.base_url(&page.url);
         for resource in &facts.resources {
-            let Ok(url) = page.url.join(resource) else {
+            let Ok(url) = base.join(resource) else {
                 continue;
             };
             if !matches!(url.scheme(), "http" | "https")
@@ -60,6 +85,9 @@ impl Catalog {
                 || url.password().is_some()
             {
                 continue;
+            }
+            if allowed_redirect(&page.url, &url) {
+                self.wordpress_components(&url, page, &mut output);
             }
             for rule in self
                 .rules
@@ -75,9 +103,9 @@ impl Catalog {
                         .version_group
                         .and_then(|g| captures.get(g))
                         .and_then(|m| version(m.as_str()));
-                    self.record(
+                    self.record_rule(
                         &mut output,
-                        rule.technology,
+                        rule,
                         version,
                         &display_url(&page.url),
                         "asset_path",
@@ -125,9 +153,9 @@ impl Catalog {
                         .version_group
                         .and_then(|g| captures.get(g))
                         .and_then(|m| version(m.as_str()));
-                    self.record(
+                    self.record_rule(
                         &mut output,
-                        rule.technology,
+                        rule,
                         version,
                         &format!("{} [HTML fingerprint]", display_url(&page.url)),
                         "html_marker",

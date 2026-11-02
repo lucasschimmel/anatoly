@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.0 — 2026-11-02
+
+- Recognize conjunctive Laravel welcome-template generations and native exception-renderer families, retaining conditional version ranges when explicit declarations are hidden and preserving conflicting declarations across renderers.
+- Retain contextual Laravel/PHP declarations in native Laravel 8–11 welcome footers when version numbers are visible; redacted or copied template structure alone remains a hypothesis.
+- Recognize the `laravel-session` cookie used by current Laravel 12 skeletons as well as the older underscore form; preserve unknown PHP versions and cookie-value redaction.
+- Add separate, bounded `version_hypotheses` with qualitative confidence, provenance, references and limitations when complete versions are unavailable; retain alternative ranges without changing exact PHP evidence or CVE verdicts.
+- Derive conditional proposals from the modern Laravel cookie, selected framework requirements, partial declarations, PHP deprecation wording, Composer constraints and component-specific WordPress asset cache hints.
+- Support validated hypothesis metadata on custom header, cookie, asset and HTML rules; preserve the separate channel across JSON, terminal, HTML, explain, compare and watch, with existing suppression controls.
+
+- Inventory valid production Composer/npm package names beyond catalog mappings, preserving canonical products and ecosystem-qualified fallback names; support npm lock formats 2/3 and format 1 nested dependencies through eight levels, skip development dependencies and retain requirements without installed versions.
+- Observe Composer `ext-*` requirements separately from loaded-extension or installed-version claims.
+- Identify WordPress plugins/themes from exact-origin asset paths and retain dotted numeric query versions only as `asset_version_hint` cache hints, rejecting values with non-numeric suffixes without fetching assets or adding requests.
+- Retain allowlisted phpinfo component versions, including MongoDB extension and section-scoped zlib compiled/linked versions, and HTTP error-footer provider declarations with source provenance, independently of PHP release evidence.
+- Bound inventory to 256 technologies and 64 observations per technology, with truncation and coverage gaps; document that discovery and inventory are not exhaustive.
+- Promote newly disclosed diagnostic routes ahead of fallback guesses even when already queued; avoid repeated diagnostic requests for URLs reached by redirects while preserving deliberate application samples.
+- Retain received header evidence and HTTP status when response-body reading fails, mark `body_incomplete` and report a coverage gap without analyzing partial body text.
+- Resolve relative HTML references against the first eligible `base href`, enforce exact-origin checks after resolution, and exclude hidden, inert and documentary HTML examples from guarded footer/phpinfo recognition.
+- Validate library sample, linked-path and HTTP limits before scanning, including rejection of body limits that cannot accommodate the overflow-detection byte.
+
 ## 0.3.0 — 2026-10-31
 
 - Recognize Craft CMS and a broader PHP application catalog through structured HTML and HTTP declarations, selected same-origin assets, Composer packages and canonical cookie names.

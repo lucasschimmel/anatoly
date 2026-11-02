@@ -11,6 +11,7 @@ use crate::{
 use serde::Serialize;
 #[derive(Debug, Serialize)]
 pub struct ScanReport {
+    pub version_hypotheses: Vec<crate::hypothesis::VersionHypothesis>,
     pub technologies: Vec<crate::technology::Technology>,
     pub runtime: crate::technology::RuntimePresence,
     pub tls: Vec<TlsObservation>,

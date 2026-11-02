@@ -17,6 +17,7 @@ pub struct Limits {
 
 #[derive(Debug, Serialize)]
 pub struct Observation {
+    pub body_incomplete: bool,
     pub url: String,
     pub status: u16,
     pub truncated: bool,
@@ -27,6 +28,7 @@ pub struct Observation {
 }
 
 pub struct PublicMetadata {
+    pub cookie_hypotheses: Vec<(String, crate::hypothesis::VersionHint)>,
     pub technology_cookies: Vec<String>,
     pub url: Url,
     pub status: u16,
@@ -56,6 +58,7 @@ pub struct Page {
 }
 
 pub struct Transport {
+    requested_urls: std::collections::HashSet<Url>,
     fingerprints: Option<std::sync::Arc<crate::fingerprints::Catalog>>,
     client: Client,
     limits: Limits,
@@ -103,6 +106,14 @@ impl Transport {
     }
 
     pub fn with_policy(limits: Limits, policy: NetworkPolicy) -> Result<Self> {
+        if limits.max_body == 0
+            || limits.max_body.checked_add(1).is_none()
+            || limits.timeout.is_zero()
+        {
+            bail!(
+                "HTTP limits require positive body size and timeout; body size must permit overflow detection"
+            );
+        }
         let builder = Client::builder()
             .timeout(limits.timeout)
             .connect_timeout(
@@ -124,6 +135,7 @@ impl Transport {
             .build()
             .context("Building HTTP client")?;
         Ok(Self {
+            requested_urls: Default::default(),
             fingerprints: None,
             client,
             limits,
@@ -141,6 +153,12 @@ impl Transport {
         self.requests < self.limits.max_requests && self.time_left().is_ok()
     }
 
+    pub(crate) fn requested(&self, url: &Url) -> bool {
+        let mut identity = url.clone();
+        identity.set_fragment(None);
+        self.requested_urls.contains(&identity)
+    }
+
     fn time_left(&self) -> Result<Duration> {
         match self.policy.target_timeout {
             Some(limit) => limit
@@ -154,6 +172,7 @@ impl Transport {
     /// All hops share one request budget; body reading is bounded before decoding.
     pub fn get(&mut self, start: &Url) -> Result<Page> {
         let mut url = start.clone();
+        url.set_fragment(None);
         let mut redirects = 0;
         loop {
             if !self.policy.permits(&url) {
@@ -171,6 +190,7 @@ impl Transport {
             }
             let request_timeout = self.limits.timeout.min(self.time_left()?);
             self.requests += 1;
+            self.requested_urls.insert(url.clone());
             let response = self.client.get(url.clone()).timeout(request_timeout).send()
                 .map_err(|_| anyhow::anyhow!("HTTP request failed (DNS, TLS, connection or timeout); verify the target and certificate"))?;
             let status = response.status();
@@ -181,6 +201,10 @@ impl Transport {
                     .get(LOCATION)
                     .and_then(|h| h.to_str().ok())
                     .and_then(|s| url.join(s).ok())
+                    .map(|mut next| {
+                        next.set_fragment(None);
+                        next
+                    })
             } else {
                 None
             };
@@ -209,13 +233,13 @@ impl Transport {
             );
             let cached = metadata.cached;
             let mut bytes = Vec::new();
-            response
+            let body_result = response
                 .take((self.limits.max_body + 1) as u64)
-                .read_to_end(&mut bytes)
-                .context("Reading bounded HTTP response")?;
+                .read_to_end(&mut bytes);
             let truncated = bytes.len() > self.limits.max_body;
             bytes.truncate(self.limits.max_body);
             self.observations.push(Observation {
+                body_incomplete: body_result.is_err(),
                 url: display_url(&url),
                 status: status.as_u16(),
                 truncated,
@@ -224,6 +248,14 @@ impl Transport {
                 redirect_limited,
                 scope_blocked,
             });
+            if body_result.is_err() {
+                // Headers are complete even when the body is not. Preserve their evidence,
+                // but return no Page so partial body text cannot supply exact version proof.
+                self.redirect_metadata.push(metadata);
+                bail!(
+                    "Reading bounded HTTP response failed; received headers retained, body incomplete"
+                );
+            }
             if let Some(next) = next.filter(|_| !blocked && !scope_blocked && !redirect_limited) {
                 self.redirect_metadata.push(metadata);
                 redirects += 1;

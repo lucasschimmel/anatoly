@@ -302,6 +302,13 @@ fn compile_rule(technology: usize, rule: &Rule) -> Result<CompiledRule> {
             "Fingerprint version capture group does not exist"
         );
     }
+    if let Some(hint) = &rule.hypothesis {
+        ensure!(
+            rule.version_group.is_none(),
+            "A hypothesis rule cannot declare an exact version capture"
+        );
+        crate::hypothesis::validate_hint(hint)?;
+    }
     let selector = rule
         .selector
         .as_ref()
@@ -316,6 +323,7 @@ fn compile_rule(technology: usize, rule: &Rule) -> Result<CompiledRule> {
         attribute: rule.attribute.clone(),
         pattern: rule.pattern.clone(),
         version_group: rule.version_group,
+        hypothesis: rule.hypothesis.clone(),
         context: rule.context.clone(),
         min_status: rule.min_status,
         same_origin: rule.same_origin,

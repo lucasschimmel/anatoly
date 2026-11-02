@@ -115,6 +115,7 @@ fn scan_with_engine(
             .unwrap_or_else(|| detector.catalog()),
     );
     let mut report = ScanReport {
+        version_hypotheses: vec![],
         technologies: vec![], runtime: Default::default(),
         tls: vec![], waf: vec![],
         version_candidates: vec![], signals: vec![], discovered_paths: vec![],
@@ -322,6 +323,29 @@ fn finish(
         &report.evidence,
         !options.no_hypotheses,
     );
+    if options.no_hypotheses {
+        for technology in &mut report.technologies {
+            for observation in &mut technology.observations {
+                observation.hypothesis = None;
+            }
+        }
+    } else {
+        let (hypotheses, limited) =
+            crate::hypothesis::infer(&report.technologies, &report.signals, &report.evidence);
+        report.version_hypotheses = hypotheses;
+        if limited {
+            report
+                .analysis
+                .gaps
+                .push("Version hypothesis limit reached; additional proposals omitted.".into());
+        }
+    }
+    if transport.observations.iter().any(|o| o.body_incomplete) {
+        report.analysis.gaps.push(
+            "HTTP response body incomplete; headers retained but partial body was not analyzed."
+                .into(),
+        );
+    }
     if transport.observations.iter().any(|o| o.truncated) {
         report
             .analysis

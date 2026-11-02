@@ -7,6 +7,8 @@ const MAX_OBSERVATIONS: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct TechnologyObservation {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hypothesis: Option<crate::hypothesis::VersionHint>,
     pub version: Option<String>,
     pub source: String,
     pub method: String,

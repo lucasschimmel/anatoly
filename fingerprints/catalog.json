@@ -135,6 +135,16 @@
           "channel": "cookie"
         },
         {
+          "pattern": "(?i)^laravel-session$",
+          "channel": "cookie",
+          "hypothesis": {
+            "range": ">=12",
+            "confidence": "low",
+            "reason": "Matches modern Laravel 12/13 skeleton default; cookie names are configurable and older apps can imitate it",
+            "reference": "https://github.com/laravel/laravel/blob/12.x/config/session.php"
+          }
+        },
+        {
           "version_group": 1,
           "channel": "header",
           "pattern": "(?i)^v?([0-9]+(?:\\.[0-9]+){1,3}(?:[-+][a-z0-9._-]+)?)$",
@@ -1033,7 +1043,15 @@
       "aliases": [],
       "composer": [],
       "npm": [],
-      "rules": []
+      "rules": [
+        {
+          "channel": "html",
+          "selector": "hr + center",
+          "min_status": 400,
+          "pattern": "(?i)^\\s*nginx(?:/([0-9]+\\.[0-9]+\\.[0-9]+))?\\s*$",
+          "version_group": 1
+        }
+      ]
     },
     {
       "name": "Apache",
