@@ -88,6 +88,10 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b1420;border-radius
             ),
             ("All explicit version evidence", &target["evidence"]),
             ("Unverified hypotheses", &target["signals"]),
+            (
+                "Unverified version hypotheses",
+                &target["version_hypotheses"],
+            ),
             ("TLS peer metadata", &target["tls"]),
             ("WAF and edge observations", &target["waf"]),
             ("Coverage and missing evidence", &target["analysis"]),

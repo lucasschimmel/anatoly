@@ -40,6 +40,7 @@ pub(crate) struct Rule {
     pub attribute: Option<String>,
     pub pattern: String,
     pub version_group: Option<usize>,
+    pub hypothesis: Option<crate::hypothesis::VersionHint>,
     #[serde(default)]
     pub context: Vec<String>,
     #[serde(default = "minimum_status")]

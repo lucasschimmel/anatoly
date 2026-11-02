@@ -20,7 +20,7 @@ pub(crate) fn run(
     let deep = options.deep;
     let paths = &options.paths;
 
-    let mut seen = HashSet::from([first.url.as_str().to_owned(), url.as_str().to_owned()]);
+    let mut queued = HashSet::from([first.url.as_str().to_owned(), url.as_str().to_owned()]);
     let mut planned = std::collections::VecDeque::new();
     let extra = if deep { DEEP_PATHS } else { &[] };
     let all_paths = report
@@ -47,12 +47,18 @@ pub(crate) fn run(
             ));
             continue;
         }
-        if seen.insert(next.as_str().to_owned()) {
+        if !transport.requested(&next) && queued.insert(next.as_str().to_owned()) {
             planned.push_back(next);
         }
     }
     report.analysis.diagnostics_requested = planned.len();
     while let Some(next) = planned.pop_front() {
+        queued.remove(next.as_str());
+        if transport.requested(&next) {
+            // A prior diagnostic may already have reached this queued URL by redirect.
+            report.analysis.diagnostics_requested -= 1;
+            continue;
+        }
         if !transport.remaining() {
             report.limitations.push(
                 "Request or target time budget reached; remaining diagnostic paths skipped.".into(),
@@ -74,9 +80,14 @@ pub(crate) fn run(
                 collect(&page, report);
                 for path in report.discovered_paths.iter().rev() {
                     let next = first.url.join(path)?;
-                    if options.network.permits(&next) && seen.insert(next.as_str().to_owned()) {
+                    if options.network.permits(&next) && !transport.requested(&next) {
+                        if let Some(position) = planned.iter().position(|url| url == &next) {
+                            planned.remove(position);
+                        } else {
+                            queued.insert(next.as_str().to_owned());
+                            report.analysis.diagnostics_requested += 1;
+                        }
                         planned.push_front(next);
-                        report.analysis.diagnostics_requested += 1;
                     }
                 }
             }

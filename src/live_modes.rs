@@ -171,6 +171,7 @@ fn state(report: &scan::ScanReport) -> Result<Value> {
         json!({"version":report.version,"verdict":report.verdict,"detection_level":report.analysis.detection_level,
         "coverage_complete":report.analysis.coverage_complete,"gaps":report.analysis.gaps,
         "final_url":report.final_url,"evidence":evidence,"signals":report.signals,"directives":report.directives,
+        "version_hypotheses":report.version_hypotheses,
         "tls":report.tls,"waf":report.waf,"technologies":report.technologies,"runtime":report.runtime,
         "statuses":report.observations.iter().map(|o|o.status).collect::<Vec<_>>()}),
     )

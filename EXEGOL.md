@@ -5,16 +5,19 @@ No Rust compiler is needed for the release binary. Linux x86_64 and ARM64 are su
 Requirements: glibc >= 2.35, OpenSSL 3, CA certificates, curl, tar and sha256sum.
 Use a source build if your container does not meet these requirements.
 
-Version 0.3.0 adds extensible technology fingerprinting and framework-version observations. See [Fingerprint catalogs](FINGERPRINTS.md) and [Reconnaissance](RECONNAISSANCE.md) for detection evidence and limits.
+Version 0.4.0 adds explainable version hypotheses, broader package/component
+inventory and more robust reconnaissance. Hypotheses remain separate from exact
+version evidence and CVE assessment. See [Fingerprint catalogs](FINGERPRINTS.md)
+and [Reconnaissance](RECONNAISSANCE.md) for detection evidence and limits.
 
 ## Install inside a container
 
 Run these commands **inside your Exegol container**, not on the host:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.3.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.4.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.3.0 --bin-dir "$HOME/.local/bin"
+sh /tmp/anatoly-install.sh --version v0.4.0 --bin-dir "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly doctor https://app.example/ --no-proxy --json
@@ -30,9 +33,9 @@ download integrity; they are not a separate publisher signature.
 Download and inspect the installer, then explicitly replace the existing binary:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.3.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.4.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.3.0 --bin-dir "$HOME/.local/bin" --force
+sh /tmp/anatoly-install.sh --version v0.4.0 --bin-dir "$HOME/.local/bin" --force
 "$HOME/.local/bin/anatoly" --version
 ```
 
@@ -46,7 +49,7 @@ Exegol mounts your configured host `my-resources` directory inside containers at
 `/opt/my-resources`. With that share enabled, install the binary there:
 
 ```sh
-sh /tmp/anatoly-install.sh --version v0.3.0 --bin-dir /opt/my-resources/bin
+sh /tmp/anatoly-install.sh --version v0.4.0 --bin-dir /opt/my-resources/bin
 export PATH="/opt/my-resources/bin:$PATH"
 anatoly --version
 ```

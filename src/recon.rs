@@ -38,8 +38,9 @@ pub struct Signal {
 }
 
 pub struct Detector {
-    address: Regex,
     catalog: std::sync::Arc<Catalog>,
+    laravel: crate::laravel_patterns::LaravelPatterns,
+    welcome_footer: crate::laravel_welcome_footer::WelcomeFooter,
     php_hint: Regex,
     dynamic_property: Regex,
     null_parameter: Regex,
@@ -59,8 +60,9 @@ pub struct Findings {
 impl Detector {
     pub fn new() -> Result<Self> {
         Ok(Self {
-            address: Regex::new(r"(?is)<address\b[^>]*>(.*?)</address>")?,
             catalog: Catalog::shared_builtin()?,
+            laravel: crate::laravel_patterns::LaravelPatterns::new()?,
+            welcome_footer: crate::laravel_welcome_footer::WelcomeFooter::new()?,
             php_hint: Regex::new(r"(?i)\bPHP\s*[/ ]?\s*([0-9]+\.[0-9]+(?:\.[0-9]+)?)")?,
             dynamic_property: Regex::new(
                 r"(?is)deprecated\s*:?.{0,80}creation of dynamic property.{0,180}is deprecated",
@@ -176,9 +178,28 @@ impl Detector {
         let mut signals = vec![];
         let facts = Facts::parse(&page.body);
         let mut technologies = vec![];
+        if !patterns.phpinfo(&page.body, &url).0.is_empty() {
+            technology::merge(
+                &mut technologies,
+                catalog.diagnostic_inventory(&facts, page),
+            );
+        }
         technology::merge(&mut technologies, catalog.resources(&facts, page));
-        let (html_technologies, fingerprint_limited) = catalog.html(&facts, page);
+        let (mut html_technologies, fingerprint_limited) = catalog.html(&facts, page);
+        let (laravel, php_disclosures, laravel_limited, strict_renderer) =
+            self.laravel.inspect(&facts, page, patterns);
+        let (footer, footer_proofs, footer_limited) = self
+            .welcome_footer
+            .inspect(&facts, page, patterns, &laravel);
+        // Modern renderer labels must use sibling values, never flattened body text.
+        if strict_renderer {
+            html_technologies.retain(|t| t.name != "Laravel");
+        }
         technology::merge(&mut technologies, html_technologies);
+        technology::merge(&mut technologies, laravel);
+        technology::merge(&mut technologies, footer);
+        proofs.extend(php_disclosures);
+        proofs.extend(footer_proofs);
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&page.body) {
             self.json_runtime(&json, &url, patterns, &mut proofs, 0);
             self.composer(&json, &page.url, &mut signals);
@@ -195,9 +216,17 @@ impl Detector {
             ));
         }
         if page.status >= 400 {
-            for address in self.address.captures_iter(&page.body) {
-                let mut found =
-                    patterns.header_evidence(&address[1], &format!("{url} [error footer]"));
+            for address in &facts.footers {
+                technology::merge(
+                    &mut technologies,
+                    catalog.declarations(
+                        address,
+                        &format!("{url} [error footer]"),
+                        "error_footer",
+                        page.status,
+                    ),
+                );
+                let mut found = patterns.header_evidence(address, &format!("{url} [error footer]"));
                 for proof in &mut found {
                     proof.kind = EvidenceKind::ErrorDisclosure;
                 }
@@ -236,10 +265,10 @@ impl Detector {
             proof.http_status = Some(page.status);
         }
         Findings {
-            html_limited: facts.limited || fingerprint_limited,
+            html_limited: facts.limited || fingerprint_limited || laravel_limited || footer_limited,
             evidence: proofs,
             signals,
-            links: self.links_from(&page.url, &facts.links, &page.body),
+            links: self.links_from(&page.url, &facts, &page.body),
             technologies,
         }
     }
@@ -321,13 +350,14 @@ impl Detector {
     }
 
     pub fn links(&self, base: &Url, body: &str) -> Vec<String> {
-        self.links_from(base, &Facts::parse(body).links, body)
+        self.links_from(base, &Facts::parse(body), body)
     }
 
-    fn links_from(&self, base: &Url, attributes: &[String], body: &str) -> Vec<String> {
+    fn links_from(&self, base: &Url, facts: &Facts, body: &str) -> Vec<String> {
         let mut links = vec![];
         let mut seen = std::collections::HashSet::new();
-        let values = attributes.iter().cloned().chain(
+        let resolution_base = facts.base_url(base);
+        let values = facts.links.iter().cloned().chain(
             self.robot
                 .captures_iter(
                     if base.path().ends_with("/robots.txt") && !body.contains('<') {
@@ -339,7 +369,7 @@ impl Detector {
                 .map(|c| c[1].to_owned()),
         );
         for value in values {
-            let Ok(mut next) = base.join(&value.replace("&amp;", "&")) else {
+            let Ok(mut next) = resolution_base.join(&value.replace("&amp;", "&")) else {
                 continue;
             };
             next.set_query(None);

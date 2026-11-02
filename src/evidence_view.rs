@@ -101,6 +101,40 @@ pub(crate) fn render(ui: &Ui, report: &ScanReport) {
             field(ui, "Source URL", &proof.source, DIM);
         }
     }
+    if !report.version_hypotheses.is_empty() {
+        line(ui, "", TEXT);
+        field(
+            ui,
+            "VERSION HYPOTHESES",
+            "Unverified ranges · never patch evidence",
+            "38;5;221",
+        );
+        for hypothesis in &report.version_hypotheses {
+            field(
+                ui,
+                &hypothesis.technology,
+                &format!(
+                    "{} · {:?} confidence · {}",
+                    hypothesis.range, hypothesis.confidence, hypothesis.basis
+                ),
+                "38;5;221",
+            );
+            for reason in &hypothesis.reasons {
+                paragraph(ui, reason, DIM);
+            }
+            for source in &hypothesis.sources {
+                field(ui, "Source", source, DIM);
+            }
+            for reference in &hypothesis.references {
+                field(ui, "Reference", reference, DIM);
+            }
+        }
+        paragraph(
+            ui,
+            "Qualitative, uncalibrated confidence. Markers can be configured, copied or backported; incompatible alternatives are not resolved as facts.",
+            DIM,
+        );
+    }
     if !report.signals.is_empty() {
         line(ui, "", TEXT);
         field(

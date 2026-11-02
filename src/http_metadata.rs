@@ -49,6 +49,7 @@ pub(crate) fn public_metadata(
         }
     }
     let mut technology_cookies = vec![];
+    let mut cookie_hypotheses = vec![];
     let mut cookies: Vec<CookieShape> = vec![];
     for cookie in headers
         .get_all("set-cookie")
@@ -57,6 +58,11 @@ pub(crate) fn public_metadata(
     {
         let name = cookie.split_once('=').map_or("", |(n, _)| n.trim());
         if let Some(catalog) = catalog {
+            for hint in catalog.cookie_hypotheses(name, status) {
+                if !cookie_hypotheses.contains(&hint) {
+                    cookie_hypotheses.push(hint);
+                }
+            }
             for technology in catalog.cookie_technologies(name, status) {
                 if !technology_cookies.contains(&technology) {
                     technology_cookies.push(technology);
@@ -68,6 +74,8 @@ pub(crate) fn public_metadata(
             "PHPSESSID"
         } else if lower == "laravel_session" {
             "laravel_session"
+        } else if lower == "laravel-session" {
+            "laravel-session"
         } else if lower == "craftsessionid" {
             "CraftSessionId"
         } else if lower == "craft_csrf_token" {
@@ -151,6 +159,7 @@ pub(crate) fn public_metadata(
             .is_some_and(|v| v.to_ascii_lowercase().contains("hit"))
     });
     PublicMetadata {
+        cookie_hypotheses,
         technology_cookies,
         url: url.clone(),
         status,

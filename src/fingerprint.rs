@@ -1,4 +1,7 @@
-use crate::policy::{PhpVersion, VersionStatus, classify};
+use crate::{
+    html::{Facts, element_text, visible},
+    policy::{PhpVersion, VersionStatus, classify},
+};
 use anyhow::Result;
 use regex::Regex;
 use serde::Serialize;
@@ -90,9 +93,8 @@ pub const DIAGNOSTIC_DIRECTIVES: &[&str] = &[
 pub struct Patterns {
     header: Regex,
     info_version: Regex,
-    rows: Regex,
-    cells: Regex,
-    tags: Regex,
+    diagnostic_nodes: scraper::Selector,
+    rows: scraper::Selector,
     info_heading: Regex,
 }
 
@@ -103,14 +105,13 @@ impl Patterns {
                 r"(?i)\bPHP\s*[/ ]\s*(\d+)\.(\d+)\.(\d+)(?:[-~]?([a-zA-Z][a-zA-Z0-9]*))?",
             )?,
             info_version: Regex::new(
-                r"(?i)\bPHP Version\s*(?:=>\s*)?(\d+)\.(\d+)\.(\d+)(?:[-~]?([a-zA-Z][a-zA-Z0-9]*))?",
+                r"(?i)^PHP Version\s*(?:=>\s*)?(\d+)\.(\d+)\.(\d+)(?:[-~]?([a-zA-Z][a-zA-Z0-9]*))?",
             )?,
-            rows: Regex::new(r"(?is)<tr\b[^>]*>(.*?)</tr>")?,
-            cells: Regex::new(r"(?is)<t[dh]\b[^>]*>(.*?)</t[dh]>")?,
-            tags: Regex::new(r"(?s)<[^>]*>")?,
-            info_heading: Regex::new(
-                r"(?is)<(?:h1|title)\b[^>]*>\s*PHP\s+(?:Version\s+)?[0-9]+\.[0-9]+\.[0-9]+",
-            )?,
+            diagnostic_nodes: scraper::Selector::parse("h1, title, h2, a, p, td, th")
+                .map_err(|_| anyhow::anyhow!("Invalid diagnostic selector"))?,
+            rows: scraper::Selector::parse("tr")
+                .map_err(|_| anyhow::anyhow!("Invalid diagnostic row selector"))?,
+            info_heading: Regex::new(r"(?i)^PHP\s+(?:Version\s+)?[0-9]+\.[0-9]+\.[0-9]+")?,
         })
     }
 
@@ -159,75 +160,130 @@ impl Patterns {
         proofs
     }
 
-    fn text(&self, html: &str) -> String {
-        self.tags
-            .replace_all(html, " ")
-            .replace("&nbsp;", " ")
-            .replace("&#039;", "'")
-            .replace("&quot;", "\"")
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
+    /// Plain diagnostics are line-based; HTML evidence comes only from active DOM nodes.
+    pub fn phpinfo(&self, body: &str, source: &str) -> (Vec<Evidence>, Vec<Directive>) {
+        let lower = body.trim_start().to_ascii_lowercase();
+        let plain = lower.starts_with("phpinfo()")
+            || (!lower.contains('<') && lower.starts_with("php version"));
+        let (mut versions, directives) = if plain {
+            self.plain_info(body, source)
+        } else {
+            self.html_info(body, source)
+        };
+        for proof in &mut versions {
+            proof.kind = EvidenceKind::Diagnostic;
+        }
+        (versions, directives)
     }
 
-    /// Only interpret a body as phpinfo when its characteristic diagnostic markers coexist.
-    pub fn phpinfo(&self, body: &str, source: &str) -> (Vec<Evidence>, Vec<Directive>) {
-        let lower = body.to_ascii_lowercase();
-        let markers = [
-            "php credits",
-            "configuration",
-            "server api",
-            "php api",
-            "zend extension",
-            "php extension",
-        ];
-        let plain_info = lower.trim_start().starts_with("phpinfo()")
-            || (!lower.contains('<') && lower.trim_start().starts_with("php version"));
-        if (!self.info_heading.is_match(body) && !plain_info)
-            || !lower.contains("php version")
-            || markers.iter().filter(|m| lower.contains(**m)).count() < 2
-        {
+    fn plain_info(&self, body: &str, source: &str) -> (Vec<Evidence>, Vec<Directive>) {
+        if diagnostic_marker_count(&body.to_ascii_lowercase()) < 2 {
             return (vec![], vec![]);
         }
-        let versions = self.versions(&self.info_version, &self.text(body), source);
+        let mut versions = vec![];
         let mut directives = vec![];
-        for row in self.rows.captures_iter(body) {
-            let cells: Vec<_> = self
-                .cells
-                .captures_iter(&row[1])
-                .map(|c| self.text(&c[1]))
+        for line in body.lines() {
+            let line = line.trim();
+            versions.extend(self.versions(&self.info_version, line, source));
+            let cells: Vec<_> = line
+                .split("=>")
+                .map(|cell| cell.trim().to_owned())
                 .collect();
-            if cells.len() >= 2
-                && DIAGNOSTIC_DIRECTIVES.contains(&cells[0].to_ascii_lowercase().as_str())
-            {
-                directives.push(Directive {
-                    source: source.to_owned(),
-                    name: cells[0].to_ascii_lowercase(),
-                    local_value: cells[1].chars().take(120).collect(),
-                    master_value: cells.get(2).map(|s| s.chars().take(120).collect()),
-                });
-            }
+            retain_directive(&cells, source, &mut directives);
         }
-        if plain_info {
-            for line in body.lines() {
-                let cells: Vec<_> = line.split("=>").map(str::trim).collect();
-                let Some(name) = cells.first().map(|s| s.to_ascii_lowercase()) else {
-                    continue;
-                };
-                if cells.len() >= 2 && DIAGNOSTIC_DIRECTIVES.contains(&name.as_str()) {
-                    directives.push(Directive {
-                        source: source.to_owned(),
-                        name,
-                        local_value: cells[1].chars().take(120).collect(),
-                        master_value: cells.get(2).map(|s| s.chars().take(120).collect()),
-                    });
+        if versions.is_empty() {
+            return (vec![], vec![]);
+        }
+        (versions, directives)
+    }
+
+    // Keep headings, contextual markers and rows in one DOM-backed recognition pass.
+    fn html_info(&self, body: &str, source: &str) -> (Vec<Evidence>, Vec<Directive>) {
+        let facts = Facts::parse(body);
+        let Some(document) = facts.document else {
+            return (vec![], vec![]);
+        };
+        let mut versions = vec![];
+        let mut markers = String::new();
+        let mut heading_found = false;
+        for node in document
+            .select(&self.diagnostic_nodes)
+            .filter(|node| visible(*node))
+            .take(1024)
+        {
+            let (text, clipped) = element_text(node);
+            if clipped {
+                continue;
+            }
+            if matches!(node.value().name(), "h1" | "title") && self.info_heading.is_match(&text) {
+                heading_found = true;
+                versions.extend(self.versions(&self.info_version, &text, source));
+                if !text.to_ascii_lowercase().starts_with("php version") {
+                    versions.extend(self.header_evidence(&text, source));
                 }
             }
+            markers.push_str(&text.to_ascii_lowercase());
+            markers.push('\n');
+        }
+        if !heading_found || diagnostic_marker_count(&markers) < 2 {
+            return (vec![], vec![]);
+        }
+        let mut directives = vec![];
+        for row in document
+            .select(&self.rows)
+            .filter(|node| visible(*node))
+            .take(1024)
+        {
+            let nodes: Vec<_> = row
+                .children()
+                .filter_map(scraper::ElementRef::wrap)
+                .filter(|node| matches!(node.value().name(), "td" | "th"))
+                .take(4)
+                .collect();
+            if nodes.iter().any(|node| !visible(*node)) {
+                continue;
+            }
+            let cells: Vec<_> = nodes.into_iter().map(|node| element_text(node).0).collect();
+            if cells.len() >= 2 && cells[0].eq_ignore_ascii_case("php version") {
+                versions.extend(self.versions(
+                    &self.info_version,
+                    &format!("PHP Version {}", cells[1]),
+                    source,
+                ));
+            }
+            retain_directive(&cells, source, &mut directives);
         }
         (versions, directives)
     }
 }
 
+fn diagnostic_marker_count(text: &str) -> usize {
+    [
+        "php credits",
+        "configuration",
+        "server api",
+        "php api",
+        "zend extension",
+        "php extension",
+    ]
+    .iter()
+    .filter(|marker| text.contains(**marker))
+    .count()
+}
+
+fn retain_directive(cells: &[String], source: &str, output: &mut Vec<Directive>) {
+    let Some(name) = cells.first().map(|value| value.to_ascii_lowercase()) else {
+        return;
+    };
+    if cells.len() >= 2 && DIAGNOSTIC_DIRECTIVES.contains(&name.as_str()) {
+        output.push(Directive {
+            source: source.to_owned(),
+            name,
+            local_value: cells[1].chars().take(120).collect(),
+            master_value: cells.get(2).map(|value| value.chars().take(120).collect()),
+        });
+    }
+}
 pub fn resolve(evidence: &[Evidence]) -> (Option<PhpVersion>, VersionStatus) {
     let Some(first) = evidence.first() else {
         return (None, VersionStatus::Unknown);
