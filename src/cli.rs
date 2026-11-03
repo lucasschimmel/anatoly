@@ -37,6 +37,10 @@ pub enum Command {
     Exposure(Box<ScanArgs>),
     /// Inspect response security headers and recognized session cookies.
     Headers(Box<ScanArgs>),
+    /// Prove command execution in the explicit loopback-only Docker lab.
+    Exploit(LabArgs),
+    /// Run an allowlisted command in the explicit loopback-only Docker lab.
+    Connect(ConnectArgs),
     /// Repeat bounded scans and display only meaningful changes.
     Watch(Box<WatchArgs>),
     /// Compare two saved aggregate scan reports without network access.
@@ -64,6 +68,40 @@ pub enum Command {
     Explain { input: PathBuf },
     /// Validate scan settings and local HTTP client setup without requests.
     Doctor(Box<ScanArgs>),
+}
+
+#[derive(Args)]
+#[command(group(clap::ArgGroup::new("input").args(["targets", "url", "list"]).required(true).multiple(true)))]
+pub struct TargetArgs {
+    /// Absolute HTTP(S) URLs.
+    pub targets: Vec<String>,
+    /// Target URL; repeatable alternative to positional URLs.
+    #[arg(short, long, help_heading = "Targets and scope")]
+    pub url: Vec<String>,
+    /// One URL per line; blank and # comment lines ignored.
+    #[arg(short, long, help_heading = "Targets and scope")]
+    pub list: Option<PathBuf>,
+}
+
+#[derive(Args)]
+pub struct LabArgs {
+    #[command(flatten)]
+    pub input: TargetArgs,
+    /// Required acknowledgement that execution is limited to the local Docker lab.
+    #[arg(long, required = true)]
+    pub lab: bool,
+    /// Write full JSON to a new file; existing files are never overwritten.
+    #[arg(short, long, help_heading = "Output and CI")]
+    pub output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+pub struct ConnectArgs {
+    #[command(flatten)]
+    pub lab: LabArgs,
+    /// Run one allowlisted command and exit instead of opening the local prompt.
+    #[arg(long)]
+    pub command: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -105,8 +143,9 @@ pub enum FailOn {
 }
 
 #[derive(Args)]
-#[command(group(clap::ArgGroup::new("input").args(["targets", "url", "list"]).required(true).multiple(true)))]
 pub struct ScanArgs {
+    #[command(flatten)]
+    pub input: TargetArgs,
     /// Extra request header, repeatable. Values are never exported. One origin only.
     #[arg(
         short = 'H',
@@ -139,14 +178,6 @@ pub struct ScanArgs {
     /// Export scan/exposure findings as SARIF 2.1.0 to a new file.
     #[arg(long, help_heading = "Output and CI")]
     pub sarif: Option<PathBuf>,
-    /// Absolute HTTP(S) URLs.
-    pub targets: Vec<String>,
-    /// Target URL; repeatable alternative to positional URLs.
-    #[arg(short, long, help_heading = "Targets and scope")]
-    pub url: Vec<String>,
-    /// One URL per line; blank and # comment lines ignored.
-    #[arg(short, long, help_heading = "Targets and scope")]
-    pub list: Option<PathBuf>,
     /// Restrict every supplied target to an exact hostname; repeatable, no wildcards/ports.
     #[arg(long, help_heading = "Targets and scope")]
     pub allow_host: Vec<String>,

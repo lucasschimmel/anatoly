@@ -1,0 +1,23 @@
+pub struct LabProfile {
+    pub name: &'static str,
+    pub upstream_profile: &'static str,
+    pub zif_offset: &'static str,
+    pub dtor_offset: &'static str,
+    pub htdata_offset: &'static str,
+    pub huge_mb: &'static str,
+    pub retries: &'static str,
+}
+
+impl LabProfile {
+    pub fn php_8_4_26_bookworm() -> Self {
+        Self {
+            name: "php-8.4.26-bookworm-amd64",
+            upstream_profile: "bookworm",
+            zif_offset: "0x465370",
+            dtor_offset: "0x65eb60",
+            htdata_offset: "0x690d8",
+            huge_mb: "12",
+            retries: "24",
+        }
+    }
+}

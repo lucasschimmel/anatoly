@@ -1,4 +1,4 @@
-use crate::cli::{FailOn, Profile, ScanArgs};
+use crate::cli::{FailOn, Profile, ScanArgs, TargetArgs};
 use anatoly::{
     http::{Limits, allowed_redirect, display_url, validate_url},
     network::{NetworkPolicy, normalize_host},
@@ -253,6 +253,10 @@ pub(crate) fn validate_scope(targets: &[String], options: &ScanOptions) -> Resul
 }
 
 pub(crate) fn targets(args: &ScanArgs) -> Result<Vec<String>> {
+    target_inputs(&args.input, args.max_targets)
+}
+
+pub(crate) fn target_inputs(args: &TargetArgs, max_targets: u16) -> Result<Vec<String>> {
     let mut targets = args.targets.clone();
     targets.extend(args.url.clone());
     if let Some(path) = &args.list {
@@ -280,7 +284,7 @@ pub(crate) fn targets(args: &ScanArgs) -> Result<Vec<String>> {
             normalized.push(url.to_string());
         }
     }
-    if normalized.is_empty() || normalized.len() > usize::from(args.max_targets) {
+    if normalized.is_empty() || normalized.len() > usize::from(max_targets) {
         bail!("Target count exceeds --max-targets or the list is empty");
     }
     Ok(normalized)

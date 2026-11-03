@@ -1,0 +1,89 @@
+use std::{
+    fs,
+    process::{Command, Output},
+};
+
+const LOCAL: &str = "http://127.0.0.1:18108/index.php";
+
+fn run(args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_anatoly"))
+        .args(args)
+        .output()
+        .unwrap()
+}
+
+fn stderr(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stderr).into_owned()
+}
+
+#[test]
+fn exploit_requires_explicit_lab_acknowledgement() {
+    let output = run(&["exploit", "-u", LOCAL, "--no-banner"]);
+    assert!(!output.status.success());
+    assert!(stderr(&output).contains("--lab"));
+}
+
+#[test]
+fn exploit_rejects_non_loopback_target_before_running_the_reproducer() {
+    let output = run(&[
+        "exploit",
+        "-u",
+        "http://65.108.38.218:18108/index.php",
+        "--lab",
+        "--no-banner",
+    ]);
+    assert!(!output.status.success());
+    assert!(stderr(&output).contains("only accepted target"));
+}
+
+#[test]
+fn exploit_uses_the_shared_single_target_validation() {
+    let output = run(&[
+        "exploit",
+        "-u",
+        LOCAL,
+        "-u",
+        "http://127.0.0.1:18108/",
+        "--lab",
+        "--no-banner",
+    ]);
+    assert!(!output.status.success());
+    assert!(stderr(&output).contains("Target count exceeds"));
+}
+
+#[test]
+fn connect_rejects_commands_outside_the_allowlist() {
+    let output = run(&[
+        "connect",
+        "-u",
+        LOCAL,
+        "--lab",
+        "--command",
+        "id;whoami",
+        "--no-banner",
+    ]);
+    assert!(!output.status.success());
+    assert!(stderr(&output).contains("Command refused"));
+}
+
+#[test]
+fn exploit_reuses_output_preflight_before_execution() {
+    let path = std::env::temp_dir().join(format!(
+        "anatoly-existing-report-{}.json",
+        std::process::id()
+    ));
+    fs::write(&path, "preserve me").unwrap();
+    let output = run(&[
+        "exploit",
+        "-u",
+        LOCAL,
+        "--lab",
+        "--output",
+        path.to_str().unwrap(),
+        "--no-banner",
+    ]);
+    assert!(!output.status.success());
+    assert!(stderr(&output).contains("Output already exists"));
+    assert_eq!(fs::read_to_string(&path).unwrap(), "preserve me");
+    let _ = fs::remove_file(path);
+}
