@@ -22,6 +22,8 @@ All live modes reuse scan scope, TLS validation, proxy, pacing and per-target bu
 anatoly scan https://app.example/ --output before.json
 anatoly exposure https://app.example/ --output disclosures.json
 anatoly headers https://app.example/ --json
+anatoly exploit -u http://127.0.0.1:18108/index.php --lab --json
+anatoly connect -u http://127.0.0.1:18108/index.php --lab --command whoami
 anatoly watch https://app.example/ --interval 300 --iterations 12
 anatoly compare before.json after.json --json
 anatoly report before.json --output assessment.html
@@ -32,6 +34,7 @@ anatoly doctor https://app.example/ --https-only --no-proxy --json
 
 ### Live Mode Notes
 
+- **`exploit` / `connect --lab`** resolve the Docker lab at execution time. `--lab-dir DIR` selects the project containing `lab/` (default: current directory). `--output FILE` writes the JSON execution report to a new file and refuses to overwrite an existing file. Interactive `connect` (without `--command`) is incompatible with `--json` and `--output`.
 - **`watch --json`** emits one aggregate object at completion containing change events and `final_report`. Its `--output` writes that same envelope; extract `final_report` for offline report commands. Interrupted watches do not write a completed aggregate. JSONL and summary-only are not supported by watch. Exit status reflects the final round using `--fail-on`.
 - **`headers`** exits 0 after completed observations and 3 for transport errors (unless `--fail-on never`). Missing or weak header declarations are reported for review; this mode does not use PHP version exit semantics. Only recognized session cookie names are inspected; values and opaque name suffixes are omitted.
 - **`--dry-run`** sends no requests. `exposure` expands the scan plan; `headers` shows configured request caps; `watch` shows one round's plan without sleeping. `doctor` always sends zero requests.

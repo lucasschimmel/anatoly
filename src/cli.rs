@@ -90,6 +90,9 @@ pub struct ExploitArgs {
     /// Required acknowledgement that execution is limited to the local Docker lab.
     #[arg(long, required = true)]
     pub lab: bool,
+    /// Project directory containing lab/reproducer.py and the mounted lab/out directory.
+    #[arg(long, default_value = ".", help_heading = "Local lab")]
+    pub lab_dir: PathBuf,
     /// Write full JSON to a new file; existing files are never overwritten.
     #[arg(short, long, help_heading = "Output and CI")]
     pub output: Option<PathBuf>,

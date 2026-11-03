@@ -1,9 +1,8 @@
 use crate::{
-    cli::{ConnectArgs, ExploitArgs, Profile, ScanArgs, WatchArgs},
-    exports, runner,
+    cli::{Profile, ScanArgs, WatchArgs},
+    runner,
 };
 use anatoly::{
-    exploit::{COMMAND_NAMES, ExecutionCommand, ExecutionTarget, ExploitReport, Php2ShellBackend},
     http::{Transport, display_url, validate_url},
     scan::{self, Report},
     ui::Ui,
@@ -11,90 +10,9 @@ use anatoly::{
 use anyhow::{Result, bail};
 use serde_json::{Value, json};
 use std::{
-    io::{self, Write},
+    io::Write,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-
-pub fn exploit(args: ExploitArgs, json: bool, ui: &Ui) -> Result<u8> {
-    run_exploit("exploit", args, ExecutionCommand::Id, json, ui)
-}
-
-pub fn connect(args: ConnectArgs, json: bool, ui: &Ui) -> Result<u8> {
-    if let Some(command) = args.command {
-        return run_exploit(
-            "connect",
-            args.exploit,
-            ExecutionCommand::parse(&command)?,
-            json,
-            ui,
-        );
-    }
-    if json || args.exploit.output.is_some() {
-        bail!("Interactive connect requires neither --json nor --output; use --command");
-    }
-    interactive(args.exploit)
-}
-
-fn run_exploit(
-    mode: &'static str,
-    args: ExploitArgs,
-    command: ExecutionCommand,
-    json: bool,
-    ui: &Ui,
-) -> Result<u8> {
-    let target = execution_target(&args)?;
-    exports::preflight(&[args.output.as_deref()])?;
-    let proof = Php2ShellBackend::calibrated().execute(&target, command, json)?;
-    let report = ExploitReport::new(mode, &target, proof);
-    if let Some(path) = &args.output {
-        runner::write_new(path, &report)?;
-    }
-    if json {
-        println!("{}", serde_json::to_string_pretty(&report)?);
-    } else {
-        ui.details("ANATOLY / PHP2SHELL PROOF", &serde_json::to_value(&report)?);
-    }
-    Ok(0)
-}
-
-fn execution_target(args: &ExploitArgs) -> Result<ExecutionTarget> {
-    let targets = runner::target_inputs(&args.input, 1)?;
-    ExecutionTarget::from_targets(&targets, args.lab)
-}
-
-fn interactive(args: ExploitArgs) -> Result<u8> {
-    let target = execution_target(&args)?;
-    let backend = Php2ShellBackend::calibrated();
-    println!("Connected to the REAL LOCAL Docker lab.");
-    println!(
-        "Each command reruns the chain and requires fresh proof; this is not a persistent shell."
-    );
-    println!("Commands: {}, exit", COMMAND_NAMES.join(", "));
-    let stdin = io::stdin();
-    loop {
-        print!("anatoly-docker$ ");
-        io::stdout().flush()?;
-        let mut input = String::new();
-        if stdin.read_line(&mut input)? == 0 {
-            println!();
-            break;
-        }
-        let input = input.trim();
-        if input == "exit" {
-            break;
-        }
-        if input.is_empty() {
-            continue;
-        }
-        let result = ExecutionCommand::parse(input)
-            .and_then(|command| backend.execute(&target, command, false));
-        match result {
-            Ok(proof) => println!("{}", proof.output),
-            Err(error) => eprintln!("[-] {error:#}"),
-        }
-    }
-    Ok(0)
-}
 
 pub fn exposure(mut args: ScanArgs, json: bool, ui: &Ui) -> Result<u8> {
     if matches!(args.profile, Profile::Quick) || args.no_discover {

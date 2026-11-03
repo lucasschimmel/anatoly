@@ -4,7 +4,9 @@ This lab executes the real PHP2Shell chain against **PHP 8.4.26 / Apache prefork
 
 The `php-8.4.26-bookworm-amd64` profile verifies heap and `libphp` leaks, then requires fresh command output inside `/out/p1` before reporting `PROOF`. The proof script is written with LF line endings so it runs cleanly from both Windows and Linux hosts.
 
-The execution engine is part of the public `anatoly::exploit` library module. CLI orchestration lives in `live_modes.rs` alongside the other live modes; Docker lifecycle management remains isolated in `lab/local_lab.py`.
+The execution engine is part of the public `anatoly::exploit` library module. Its private implementation modules follow the project's flat `src/exploit_*.rs` layout. CLI orchestration lives in `execution_modes.rs`, uses the shared target validation and export preflight, and renders results through `Ui`. The library returns structured proofs and errors without printing. Docker lifecycle management remains in `lab/local_lab.py`.
+
+The lab directory is resolved at runtime, relative to the current working directory. When running an installed binary or invoking Anatoly outside the project directory, pass `--lab-dir /path/to/anatoly` (the directory containing `lab/`). The same checkout must be used to start Docker and run commands so the mounted proof directory matches. Library callers construct `Php2ShellBackend::new(project_directory)` and call `execute(&target, command)`; terminal output belongs to the caller.
 
 ## Prerequisites
 
@@ -48,10 +50,9 @@ cargo run -- --no-banner exploit -u http://127.0.0.1:18108/index.php --lab
 Expected output:
 
 ```text
-[+] W3 attempt 1
-PROOF: uid=33(www-data) gid=33(www-data) groups=33(www-data)
 │ ANATOLY / PHP2SHELL PROOF
 │ status               real_rce_proven
+│ proof                uid=33(www-data) gid=33(www-data) groups=33(www-data)
 ```
 
 Without a fresh proof file containing the output of `id`, the command fails: a crash or memory leak alone is never reported as RCE.
