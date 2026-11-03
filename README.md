@@ -6,25 +6,35 @@
 
 A Rust CLI for public PHP version evidence, PHP2Shell exposure assessment and
 response-hardening observations. Every conclusion includes its evidence and limits.
-No exploit payloads, command execution or security certification.
+Real command execution is restricted to the explicit loopback-only Docker lab;
+the scanner provides no security certification.
 
-Commands: `scan`, `exposure`, `headers`, `watch`, `compare`, `report`, `policy`,
-`explain`, `doctor`, `version`, `builds` and `credits`.
+Commands: `scan`, `exposure`, `headers`, `exploit`, `connect`, `watch`, `compare`,
+`report`, `policy`, `explain`, `doctor`, `version`, `builds` and `credits`.
 
 New in **0.4.0**: bounded, explainable version hypotheses when exact versions are
 unavailable, including Laravel template and renderer families; broader Composer/npm
 inventories, WordPress component observations, and more robust diagnostic discovery
 and HTML analysis. Hypotheses retain their
 sources and limits separately from declared versions and never establish a CVE
-or patch verdict. See [fingerprint catalogs](FINGERPRINTS.md) and
-[Reconnaissance design and validation](RECONNAISSANCE.md).
+or patch verdict. See [Detection and fingerprints](docs/detection-and-fingerprints.md).
 
 New in 0.2.0: custom headers, environment-based authentication, DNS overrides,
-diagnostic wordlists, TLS/edge evidence and CSV/SARIF. See [Audit controls](AUDIT-CONTROLS.md).
+diagnostic wordlists, TLS/edge evidence and CSV/SARIF. See [CLI reference](docs/cli-reference.md).
 
 The [24-path PHP discovery wordlist](wordlists/README.md) is embedded in the binary
 from 0.2.1: `anatoly scan -u https://app.example/ --builtin-wordlist`. No separate
 download is needed. This flag defaults to 32 requests; explicit caps remain authoritative.
+
+## Local exploit/connect lab
+
+The Rust `exploit` and `connect` commands run the real PHP2Shell chain against
+a pinned PHP 8.4.26 Apache/mod_php Docker lab published only on `127.0.0.1:18108`.
+They require `--lab`, reject every other target, and accept success only after
+fresh command output from the container. `connect` supports a small read-only
+command allowlist rather than a persistent shell. The Python controller is used
+only to start and remove the lab. See [Local lab guide](docs/local-lab.md) for setup,
+verification and teardown.
 
 ## Install
 
@@ -44,7 +54,7 @@ anatoly scan -u https://your-app.example/ -o report.json
 Supports Linux **x86_64 and ARM64**, with glibc >= 2.35, OpenSSL 3 and CA certificates.
 The installer validates archive SHA-256, preserves existing binaries unless `--force`
 is provided, and never changes your shell configuration. Checksums verify download
-integrity; they are not independent publisher signatures. See [Exegol setup](EXEGOL.md)
+integrity; they are not independent publisher signatures. See [Exegol setup](docs/exegol.md)
 for a persistent installation under `/opt/my-resources/bin`.
 
 ### Windows
@@ -90,7 +100,7 @@ store (OpenSSL development packages may be required when building on Linux).
 There is no background update. `Cargo.lock` pins dependencies. The Linux installer
 supports explicit version selection; see `sh install.sh --help`.
 
-See [Scan flags and profiles](FLAGS.md) for scope restrictions, pacing, deadlines,
+See [CLI reference](docs/cli-reference.md) for scope restrictions, pacing, deadlines,
 proxy/custom-CA settings, dry-run, JSONL and CI exit policies.
 
 ```powershell
@@ -193,7 +203,7 @@ The canonical detection levels are now `declared`, `corroborated`,
 `contradictory`, and `unknown` in `analysis.detection_level`. The older
 `version_confidence` field retains sampling detail. Each version has grouped
 `version_candidates` with proof methods, normalized tokens, HTTP status and source
-URLs. `signals` contains hypotheses separately. See [Public detection](PUBLIC-DETECTION.md)
+URLs. `signals` contains hypotheses separately. See [Detection and fingerprints](docs/detection-and-fingerprints.md)
 for the method matrix, inference limits and primary sources.
 
 `technologies` groups observed products with their source-specific versions and
@@ -207,7 +217,7 @@ Use `--fingerprints ./acme.json` to extend built-in header, cookie-name, asset,
 HTML and package recognition with a validated declarative catalog. Unknown provider
 declarations remain observations without an assumed PHP runtime. Product/runtime
 associations appear as `runtime_hint`; only an explicit PHP association permits
-PHP-presence inference. See [custom catalog examples and limits](FINGERPRINTS.md).
+PHP-presence inference. See [custom catalog examples and limits](docs/detection-and-fingerprints.md).
 
 | Verdict | Meaning | Exit |
 |---|---|---|
@@ -288,4 +298,4 @@ cargo build --release --locked
 
 Tests use loopback fixtures only; they do not scan external applications.
 
-See [MODES.md](MODES.md) for exposure, headers, watch, compare, report, policy, explain and doctor commands.
+See [CLI reference](docs/cli-reference.md) for exposure, headers, watch, compare, report, policy, explain and doctor commands.
