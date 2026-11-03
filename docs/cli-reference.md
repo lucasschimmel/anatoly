@@ -10,7 +10,7 @@ All live modes reuse scan scope, TLS validation, proxy, pacing and per-target bu
 | `exposure` | Extended public information-disclosure discovery | Enables the deep path set, with a default budget of 32 requests per target. Rejects `quick`/`--no-discover`. Reports diagnostics, Composer hints, error disclosures and version proofs through the common scan engine. |
 | `headers` | Response header and recognized PHP cookie audit | One response chain per input URL. Checks HSTS, CSP presence, nosniff, framing declarations, Referrer-Policy and cookie attributes. No policy-strength or security certification. |
 | `exploit` | Prove command execution against an exact supported target | Accepts local or remote hosts on HTTP port 18108 with `/index.php` (or `/`). Runs `id` and requires fresh proof output. |
-| `connect` | Run an allowlisted command against an exact supported target | Uses the same endpoint validation. Supports `id`, `whoami`, `pwd`, `hostname`, `php -v`, `uname -a`. |
+| `connect` | Run a shell command against an exact supported target | Uses the same endpoint validation. Accepts bounded single-line commands and denies explicitly destructive or disruptive operations. |
 | `watch` | Repeated scans with change events | Default: two rounds, 300 seconds between completed rounds. Shows baseline, then changes only. No overlapping rounds. Ctrl+C stops the process. |
 | `compare` | Compare saved aggregate reports (offline) | Added/removed targets, declarations, evidence, coverage and advisory-snapshot changes. |
 | `report` | Generate standalone HTML, CSV, or SARIF (offline) | Escaped data, no scripts or remote assets; existing output files refused. |

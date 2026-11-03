@@ -4,8 +4,8 @@ use crate::{
 };
 use anatoly::{
     exploit::{
-        COMMAND_NAMES, ExecutionCommand, ExecutionTarget, ExploitMode, ExploitReport,
-        Php2ShellBackend, Php2ShellProfile,
+        ExecutionCommand, ExecutionTarget, ExploitMode, ExploitReport, Php2ShellBackend,
+        Php2ShellProfile,
     },
     scan::{ScanReport, Scanner},
     ui::{Ui, safe_text},
@@ -14,7 +14,7 @@ use anyhow::{Result, bail};
 use std::io::{self, Write};
 
 pub fn exploit(args: ExploitArgs, json: bool, ui: &Ui) -> Result<u8> {
-    run_exploit(ExploitMode::Exploit, args, ExecutionCommand::Id, json, ui)
+    run_exploit(ExploitMode::Exploit, args, ExecutionCommand::id(), json, ui)
 }
 
 pub fn connect(args: ConnectArgs, json: bool, ui: &Ui) -> Result<u8> {
@@ -125,7 +125,7 @@ fn interactive(args: ExploitArgs, ui: &Ui) -> Result<u8> {
             "php_version": prepared.profile.php_version,
             "profile": prepared.profile.name,
             "forced": prepared.forced,
-            "commands": COMMAND_NAMES,
+            "command_policy": "Single-line shell commands are allowed except explicitly denied destructive or disruptive operations",
             "session": "The scanner selected one exact profile. Each command reruns the chain and requires fresh proof. Type exit to stop.",
             "persistent_shell": false,
         }),

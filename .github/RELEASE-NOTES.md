@@ -6,10 +6,10 @@ Anatoly 0.5.0 integrates real `exploit` and `connect` execution into the Rust CL
 - Verify the running version, image identity and exact libphp symbols before every attempt. Use `--force` only for HTTP-verdict limitations; it cannot bypass version, profile, endpoint or command safeguards.
 - Accept local or remote host addresses with `/index.php` (or `/`) directly, without a separate mode flag. Invalid schemes, ports, paths and queries are rejected before any HTTP request.
 - Prove `exploit` with fresh `id` output from the container. A crash, heap leak or library leak alone is never reported as RCE.
-- Use `connect` interactively or with `--command`, limited to `id`, `whoami`, `pwd`, `hostname`, `php -v` and `uname -a`; no persistent or arbitrary shell is provided.
+- Use `connect` interactively or with `--command` for bounded single-line shell commands; explicitly destructive or disruptive operations are denied and no persistent shell is provided.
 - Select the project containing `lab/` at execution time with `--lab-dir`. JSON reports include scan evidence, force state and calibration; `--output` refuses to overwrite existing reports.
 
-Scanning and reconnaissance do not send exploit, memory-exhaustion or command-execution payloads; only the explicit `exploit` and `connect` modes execute the chain and retain their command allowlist.
+Scanning and reconnaissance do not send exploit, memory-exhaustion or command-execution payloads; only the explicit `exploit` and `connect` modes execute the chain and retain their destructive-command denylist.
 
 ## Validation
 

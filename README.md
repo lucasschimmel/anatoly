@@ -41,8 +41,9 @@ an exact Apache/mod_php Docker lab published only on `127.0.0.1:18108`. Select t
 version with `python lab/local_lab.py up --php-version 8.5.0` (default: 8.4.26).
 The scanner identifies the running version and Anatoly verifies its image identity
 and symbols before execution. They accept local or remote host addresses on the
-required endpoint and accept success only after fresh container output. `connect` supports a small read-only
-allowlist rather than a persistent shell. The Python controller is used only to start
+required endpoint and accept success only after fresh container output. `connect`
+accepts single-line shell commands, with a denylist for explicitly destructive or
+disruptive operations, rather than a persistent shell. The Python controller is used only to start
 and remove the lab. See [Local lab guide](docs/local-lab.md) for the verified-profile
 matrix, `--force`, setup, verification and teardown.
 

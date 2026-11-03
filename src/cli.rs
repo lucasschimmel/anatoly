@@ -39,7 +39,7 @@ pub enum Command {
     Headers(Box<ScanArgs>),
     /// Prove command execution against an exact supported PHP target.
     Exploit(ExploitArgs),
-    /// Run an allowlisted command against an exact supported PHP target.
+    /// Run an shell command against an exact supported PHP target.
     Connect(ConnectArgs),
     /// Repeat bounded scans and display only meaningful changes.
     Watch(Box<WatchArgs>),
@@ -101,7 +101,7 @@ pub struct ExploitArgs {
 pub struct ConnectArgs {
     #[command(flatten)]
     pub exploit: ExploitArgs,
-    /// Run one allowlisted command and exit instead of opening the local prompt.
+    /// Run one shell command and exit instead of opening the local prompt.
     #[arg(long)]
     pub command: Option<String>,
 }
