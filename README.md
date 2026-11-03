@@ -12,6 +12,14 @@ the scanner provides no security certification.
 Commands: `scan`, `exposure`, `headers`, `exploit`, `connect`, `watch`, `compare`,
 `report`, `policy`, `explain`, `doctor`, `version`, `builds` and `credits`.
 
+New in **0.5.0**: real `exploit` and `connect` commands integrated into the Rust
+CLI and library for the explicit loopback-only Docker lab. The existing scanner
+selects an exact verified build profile; `--force` can override only HTTP-verdict
+limitations, never version, profile, target or command safeguards. Eighteen Apache
+amd64 profiles cover PHP 8.4.10–8.4.26 and 8.5.0–8.5.11 where verified profiles exist.
+Execution requires `--lab` and fresh command output; affected versions without a
+verified profile are explicitly refused. See [Local lab guide](docs/local-lab.md).
+
 New in **0.4.0**: bounded, explainable version hypotheses when exact versions are
 unavailable, including Laravel template and renderer families; broader Composer/npm
 inventories, WordPress component observations, and more robust diagnostic discovery
@@ -29,12 +37,14 @@ download is needed. This flag defaults to 32 requests; explicit caps remain auth
 ## Local exploit/connect lab
 
 The Rust `exploit` and `connect` commands run the real PHP2Shell chain against
-a pinned PHP 8.4.26 Apache/mod_php Docker lab published only on `127.0.0.1:18108`.
-They require `--lab`, reject every other target, and accept success only after
-fresh command output from the container. `connect` supports a small read-only
-command allowlist rather than a persistent shell. The Python controller is used
-only to start and remove the lab. See [Local lab guide](docs/local-lab.md) for setup,
-verification and teardown.
+an exact Apache/mod_php Docker lab published only on `127.0.0.1:18108`. Select the
+version with `python lab/local_lab.py up --php-version 8.5.0` (default: 8.4.26).
+The scanner identifies the running version and Anatoly verifies its image identity
+and symbols before execution. They require `--lab`, reject every other target and
+accept success only after fresh container output. `connect` supports a small read-only
+allowlist rather than a persistent shell. The Python controller is used only to start
+and remove the lab. See [Local lab guide](docs/local-lab.md) for the verified-profile
+matrix, `--force`, setup, verification and teardown.
 
 ## Install
 
@@ -43,9 +53,9 @@ verification and teardown.
 Download and inspect the installer, then install a versioned release:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.4.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.5.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.4.0
+sh /tmp/anatoly-install.sh --version v0.5.0
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly scan -u https://your-app.example/ -o report.json
@@ -59,13 +69,13 @@ for a persistent installation under `/opt/my-resources/bin`.
 
 ### Windows
 
-Download `anatoly-v0.4.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
+Download `anatoly-v0.5.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
 [Releases](https://github.com/lucasschimmel/anatoly/releases). Compare the archive's
 SHA-256 with its line in SHA256SUMS, extract it, then run the executable:
 
 ```powershell
-Get-FileHash .\anatoly-v0.4.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
-Expand-Archive .\anatoly-v0.4.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
+Get-FileHash .\anatoly-v0.5.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Expand-Archive .\anatoly-v0.5.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
 .\anatoly\anatoly.exe --version
 .\anatoly\anatoly.exe scan -u https://your-app.example/
 ```

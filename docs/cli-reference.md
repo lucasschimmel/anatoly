@@ -34,10 +34,10 @@ anatoly doctor https://app.example/ --https-only --no-proxy --json
 
 ### Live Mode Notes
 
-- **`exploit` / `connect --lab`** resolve the Docker lab at execution time. `--lab-dir DIR` selects the project containing `lab/` (default: current directory). `--output FILE` writes the JSON execution report to a new file and refuses to overwrite an existing file. Interactive `connect` (without `--command`) is incompatible with `--json` and `--output`.
+- **`exploit` / `connect --lab`** reuse the scanner's target, transport, discovery, scope and pacing options before selecting an exact verified build profile. `--lab-dir DIR` selects the project containing `lab/` (default: current directory). `--output FILE` writes the JSON execution report to a new file and refuses to overwrite an existing file. Interactive `connect` (without `--command`) is incompatible with `--json` and `--output`. `--force` can override only a non-`potentially_affected` HTTP verdict when an exact stable affected version and verified profile are present; it never bypasses version/profile/target/command safeguards. Unsupported CSV, SARIF, JSONL and dry-run execution options are rejected before HTTP.
 - **`watch --json`** emits one aggregate object at completion containing change events and `final_report`. Its `--output` writes that same envelope; extract `final_report` for offline report commands. Interrupted watches do not write a completed aggregate. JSONL and summary-only are not supported by watch. Exit status reflects the final round using `--fail-on`.
 - **`headers`** exits 0 after completed observations and 3 for transport errors (unless `--fail-on never`). Missing or weak header declarations are reported for review; this mode does not use PHP version exit semantics. Only recognized session cookie names are inspected; values and opaque name suffixes are omitted.
-- **`--dry-run`** sends no requests. `exposure` expands the scan plan; `headers` shows configured request caps; `watch` shows one round's plan without sleeping. `doctor` always sends zero requests.
+- **`--dry-run`** sends no requests. `exposure` expands the scan plan; `headers` shows configured request caps; `watch` shows one round's plan without sleeping. `doctor` always sends zero requests. `exploit`/`connect` rejects dry-run because execution-profile selection requires scanner evidence.
 
 ---
 

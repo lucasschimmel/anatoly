@@ -85,17 +85,19 @@ pub struct TargetArgs {
 
 #[derive(Args)]
 pub struct ExploitArgs {
+    /// Reuse the scanner target, transport, discovery, scope and output options.
     #[command(flatten)]
-    pub input: TargetArgs,
+    pub scan: ScanArgs,
     /// Required acknowledgement that execution is limited to the local Docker lab.
-    #[arg(long, required = true)]
+    #[arg(long, required = true, help_heading = "Local lab")]
     pub lab: bool,
+    /// Attempt the exact detected profile despite an inconclusive HTTP verdict.
+    /// Never bypasses version, profile, target or command safeguards.
+    #[arg(long, help_heading = "Local lab")]
+    pub force: bool,
     /// Project directory containing lab/reproducer.py and the mounted lab/out directory.
     #[arg(long, default_value = ".", help_heading = "Local lab")]
     pub lab_dir: PathBuf,
-    /// Write full JSON to a new file; existing files are never overwritten.
-    #[arg(short, long, help_heading = "Output and CI")]
-    pub output: Option<PathBuf>,
 }
 
 #[derive(Args)]

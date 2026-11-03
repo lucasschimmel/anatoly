@@ -1,5 +1,6 @@
 """Build Anatoly, verify the real Rust exploit/connect flow, and tear down the lab."""
 
+import argparse
 import os
 from pathlib import Path
 import shutil
@@ -29,15 +30,22 @@ if not cargo:
         raise SystemExit("Cargo not found; install the pinned Rust toolchain first")
     cargo = str(candidate)
 
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--php-version", default="8.4.26")
+args = parser.parse_args()
+
 run([cargo, "build", "--bin", "anatoly"])
 try:
-    run([sys.executable, LAB, "up"])
+    run([sys.executable, LAB, "up", "--php-version", args.php_version])
     target = "http://127.0.0.1:18108/index.php"
     run([BINARY, "--no-banner", "exploit", "-u", target, "--lab"], timeout=650)
     run(
         [BINARY, "--no-banner", "connect", "-u", target, "--lab", "--command", "whoami"],
         timeout=650,
     )
-    print("REAL RUST CLI FLOW OK: Docker -> exploit -> connect -> fresh whoami output")
+    print(
+        f"REAL RUST CLI FLOW OK: PHP {args.php_version} Docker -> exploit -> connect "
+        "-> fresh whoami output"
+    )
 finally:
     run([sys.executable, LAB, "down"], timeout=60)

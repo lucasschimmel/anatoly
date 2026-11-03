@@ -1,4 +1,5 @@
-FROM php@sha256:60111400ff77bdc44fa79b4f072afe49a42abba71e0846ad496be4761dc9c11a
+ARG PHP_IMAGE=php@sha256:60111400ff77bdc44fa79b4f072afe49a42abba71e0846ad496be4761dc9c11a
+FROM ${PHP_IMAGE}
 
 # Deliberately small endpoint: no session_start(), framework, or custom php.ini.
 RUN printf '%s\n' '<?php header("Content-Type: text/plain"); echo "php2shell lab\\n";' \

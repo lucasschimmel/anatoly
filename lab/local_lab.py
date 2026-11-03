@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -23,7 +24,20 @@ OUT = LAB_DIR / "out"
 DEFAULT_TARGET = "http://127.0.0.1:18108/index.php"
 CONTAINER = "anatoly-php2shell-lab"
 NETWORK = "anatoly-php2shell-net"
-IMAGE = "anatoly-php2shell:8.4.26"
+FIX_FLOORS = {(8, 2): 35, (8, 3): 36, (8, 4): 27, (8, 5): 12}
+PINNED_IMAGES = {
+    "8.4.26": "php@sha256:60111400ff77bdc44fa79b4f072afe49a42abba71e0846ad496be4761dc9c11a"
+}
+
+
+def php_version(value: str) -> str:
+    match = re.fullmatch(r"(8)\.(2|3|4|5)\.(\d+)", value)
+    if not match:
+        raise argparse.ArgumentTypeError("Use an exact upstream PHP version such as 8.4.26")
+    major, minor, patch = int(match[1]), int(match[2]), int(match[3])
+    if patch >= FIX_FLOORS[(major, minor)]:
+        raise argparse.ArgumentTypeError(f"PHP {value} is not in the affected upstream range")
+    return value
 
 
 class LabError(RuntimeError):
@@ -82,19 +96,31 @@ def docker_ready(docker: str) -> None:
         )
 
 
-def lab_up() -> None:
+def lab_up(version: str = "8.4.26") -> None:
     docker = find_docker()
     docker_ready(docker)
     if not DOCKER_DIR.is_dir():
         raise LabError("Lab Docker configuration files are missing in lab/docker/")
+    source_image = PINNED_IMAGES.get(version, f"php:{version}-apache")
+    image = f"anatoly-php2shell:{version}"
     OUT.mkdir(parents=True, exist_ok=True)
     for artifact in (OUT / "p1", OUT / "x"):
         artifact.unlink(missing_ok=True)
     run_process([docker, "rm", "--force", CONTAINER], timeout=20, check=False)
     run_process([docker, "network", "rm", NETWORK], timeout=20, check=False)
-    print("[*] Building the pinned PHP 8.4.26 Apache image…", flush=True)
+    print(f"[*] Building PHP {version} Apache from {source_image}…", flush=True)
     run_process(
-        [docker, "build", "--platform", "linux/amd64", "--tag", IMAGE, str(DOCKER_DIR)],
+        [
+            docker,
+            "build",
+            "--platform",
+            "linux/amd64",
+            "--build-arg",
+            f"PHP_IMAGE={source_image}",
+            "--tag",
+            image,
+            str(DOCKER_DIR),
+        ],
         timeout=900,
     )
     run_process([docker, "network", "create", NETWORK], timeout=30)
@@ -125,7 +151,7 @@ def lab_up() -> None:
             f"{DOCKER_DIR / 'apache.conf'}:/etc/apache2/conf-enabled/zz-lab.conf:ro",
             "--volume",
             f"{OUT}:/out",
-            IMAGE,
+            image,
         ],
         timeout=30,
     )
@@ -133,7 +159,7 @@ def lab_up() -> None:
         try:
             with urlopen(DEFAULT_TARGET, timeout=2) as response:
                 if response.status == 200 and b"OK" in response.read(4096):
-                    print(f"[+] Real PHP lab ready on {DEFAULT_TARGET}")
+                    print(f"[+] Real PHP {version} lab ready on {DEFAULT_TARGET}")
                     print("[+] Published on loopback only; dedicated Docker bridge attached.")
                     return
         except OSError:
@@ -163,10 +189,11 @@ def lab_status() -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Anatoly loopback-only Docker lab lifecycle")
     parser.add_argument("mode", choices=("up", "down", "status"))
+    parser.add_argument("--php-version", type=php_version, default="8.4.26")
     args = parser.parse_args(argv)
     try:
         if args.mode == "up":
-            lab_up()
+            lab_up(args.php_version)
         elif args.mode == "down":
             lab_down()
         else:

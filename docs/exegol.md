@@ -7,9 +7,9 @@ Anatoly is an independent custom tool. No Rust compiler is needed for the releas
 Run these commands **inside your Exegol container**:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.4.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.5.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.4.0 --bin-dir "$HOME/.local/bin"
+sh /tmp/anatoly-install.sh --version v0.5.0 --bin-dir "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly doctor https://app.example/ --no-proxy --json
@@ -22,7 +22,7 @@ The installer verifies the binary archive's SHA-256 before installation, runs on
 Exegol mounts your configured host `my-resources` directory inside containers at `/opt/my-resources`. Install the binary there to share it across containers of the same CPU architecture:
 
 ```sh
-sh /tmp/anatoly-install.sh --version v0.4.0 --bin-dir /opt/my-resources/bin
+sh /tmp/anatoly-install.sh --version v0.5.0 --bin-dir /opt/my-resources/bin
 export PATH="/opt/my-resources/bin:$PATH"
 anatoly --version
 ```
@@ -30,7 +30,7 @@ anatoly --version
 To upgrade an existing installation, pass `--force`:
 
 ```sh
-sh /tmp/anatoly-install.sh --version v0.4.0 --bin-dir /opt/my-resources/bin --force
+sh /tmp/anatoly-install.sh --version v0.5.0 --bin-dir /opt/my-resources/bin --force
 ```
 
 ## HTB / Lab Workflow
