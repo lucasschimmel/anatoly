@@ -3,29 +3,22 @@ use crate::{
     exports, runner,
 };
 use anatoly::{
-    exploit::{
-        ExecutionCommand, ExecutionTarget, ExploitMode, ExploitReport, Php2ShellBackend,
-        Php2ShellProfile,
-    },
+    exploit::{ExploitMode, ExploitReport, Php2ShellBackend, Php2ShellProfile},
+    http::validate_url,
     scan::{ScanReport, Scanner},
     ui::{Ui, safe_text},
 };
 use anyhow::{Result, bail};
+use reqwest::Url;
 use std::io::{self, Write};
 
 pub fn exploit(args: ExploitArgs, json: bool, ui: &Ui) -> Result<u8> {
-    run_exploit(ExploitMode::Exploit, args, ExecutionCommand::id(), json, ui)
+    run_exploit(ExploitMode::Exploit, args, "id".to_owned(), json, ui)
 }
 
 pub fn connect(args: ConnectArgs, json: bool, ui: &Ui) -> Result<u8> {
     if let Some(command) = args.command {
-        return run_exploit(
-            ExploitMode::Connect,
-            args.exploit,
-            ExecutionCommand::parse(&command)?,
-            json,
-            ui,
-        );
+        return run_exploit(ExploitMode::Connect, args.exploit, command, json, ui);
     }
     if json || args.exploit.scan.output.is_some() {
         bail!("Interactive connect requires neither --json nor --output; use --command");
@@ -34,7 +27,7 @@ pub fn connect(args: ConnectArgs, json: bool, ui: &Ui) -> Result<u8> {
 }
 
 struct PreparedExecution {
-    target: ExecutionTarget,
+    target: Url,
     backend: Php2ShellBackend,
     profile: Php2ShellProfile,
     scan: ScanReport,
@@ -44,7 +37,7 @@ struct PreparedExecution {
 fn run_exploit(
     mode: ExploitMode,
     args: ExploitArgs,
-    command: ExecutionCommand,
+    command: String,
     json: bool,
     ui: &Ui,
 ) -> Result<u8> {
@@ -69,9 +62,9 @@ fn run_exploit(
     Ok(0)
 }
 
-fn execution_target(args: &ExploitArgs) -> Result<ExecutionTarget> {
+fn execution_target(args: &ExploitArgs) -> Result<Url> {
     let targets = runner::target_inputs(&args.scan.input, 1)?;
-    ExecutionTarget::from_targets(&targets)
+    validate_url(&targets[0])
 }
 
 fn prepare(args: &ExploitArgs, json: bool, ui: &Ui) -> Result<PreparedExecution> {
@@ -121,11 +114,11 @@ fn interactive(args: ExploitArgs, ui: &Ui) -> Result<u8> {
     ui.details(
         "ANATOLY / PHP2SHELL SESSION",
         &serde_json::json!({
-            "target": prepared.target.display(),
+            "target": prepared.target.as_str(),
             "php_version": prepared.profile.php_version,
             "profile": prepared.profile.name,
             "forced": prepared.forced,
-            "command_policy": "Single-line shell commands are allowed except explicitly denied destructive or disruptive operations",
+            "command_policy": "Commands are passed to the shell without an allowlist or denylist",
             "session": "The scanner selected one exact profile. Each command reruns the chain and requires fresh proof. Type exit to stop.",
             "persistent_shell": false,
         }),
@@ -154,8 +147,9 @@ fn interactive(args: ExploitArgs, ui: &Ui) -> Result<u8> {
 }
 
 fn interactive_command(input: &str, prepared: &PreparedExecution, ui: &Ui) -> Result<()> {
-    let command = ExecutionCommand::parse(input)?;
-    let proof = prepared.backend.execute(&prepared.target, command)?;
+    let proof = prepared
+        .backend
+        .execute(&prepared.target, input.to_owned())?;
     let report = ExploitReport::new(
         ExploitMode::Connect,
         &prepared.target,

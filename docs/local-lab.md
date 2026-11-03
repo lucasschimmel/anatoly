@@ -37,8 +37,8 @@ The lab directory is resolved at runtime. When invoking Anatoly outside the proj
 - Published exclusively on `127.0.0.1:18108`;
 - Dedicated Docker bridge network created on `up` and removed on `down`;
 - `no-new-privileges:true`, memory limit (`1g`) and PID limit (`64`);
-- Local and remote host addresses are accepted on HTTP port 18108 with `/index.php` (or `/`), without a separate mode flag;
-- Commands are bounded to one non-empty line of at most 4096 bytes; explicitly destructive or disruptive operations are denied;
+- Any valid absolute HTTP(S) URL is accepted through the shared scanner validation, without lab-specific host, port, path or query restrictions;
+- Commands are passed verbatim to the shell without an allowlist or denylist;
 - Configuration files mounted read-only; only disposable `lab/out/` receives proof files;
 - No persistent shell: each command reruns the full chain and requires fresh proof.
 
@@ -96,7 +96,7 @@ Interactive prompt:
 cargo run -- --no-banner connect -u http://127.0.0.1:18108/index.php
 ```
 
-The scanner and profile selection run once for the interactive session. Every command still reruns the chain and requires fresh proof. Use any bounded single-line shell command that is not explicitly denied as destructive or disruptive; type `exit` to stop.
+The scanner and profile selection run once for the interactive session. Every command still reruns the chain and requires fresh proof. Commands are passed to the shell without an allowlist or denylist; type `exit` to stop.
 
 ### 4. Understand `--force`
 

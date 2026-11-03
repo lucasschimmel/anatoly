@@ -1,15 +1,15 @@
 Anatoly 0.5.0 integrates real `exploit` and `connect` execution into the Rust CLI and public library with exact-version profile selection.
 
-- Run the real PHP2Shell chain against an exact Apache prefork/mod_php target on HTTP port 18108; select local lab versions through `local_lab.py --php-version`.
+- Run the real PHP2Shell chain against an exact Apache prefork/mod_php target; select local lab versions through `local_lab.py --php-version`.
 - Reuse the existing scanner and its CLI options to identify one exact stable affected version and select its verified profile. Never substitute another patch from the same branch.
 - Embed 18 maintainer-verified Apache bookworm amd64 profiles covering PHP 8.4.10/11/19/20/25/26 and 8.5.0–8.5.11, with `carrier` and `vessel` geometries. Affected builds without a verified profile, including 8.3.35, are refused rather than presented as RCE-compatible.
-- Verify the running version, image identity and exact libphp symbols before every attempt. Use `--force` only for HTTP-verdict limitations; it cannot bypass version, profile, endpoint or command safeguards.
-- Accept local or remote host addresses with `/index.php` (or `/`) directly, without a separate mode flag. Invalid schemes, ports, paths and queries are rejected before any HTTP request.
+- Verify the running version, image identity and exact libphp symbols before every attempt. Use `--force` only for HTTP-verdict limitations; it cannot bypass version or profile safeguards.
+- Accept any valid absolute HTTP(S) URL through the shared scanner validation, without lab-specific host, port, path or query restrictions.
 - Prove `exploit` with fresh `id` output from the container. A crash, heap leak or library leak alone is never reported as RCE.
-- Use `connect` interactively or with `--command` for bounded single-line shell commands; explicitly destructive or disruptive operations are denied and no persistent shell is provided.
+- Use `connect` interactively or with `--command`; commands are passed verbatim to the shell without an allowlist or denylist and no persistent shell is provided.
 - Select the project containing `lab/` at execution time with `--lab-dir`. JSON reports include scan evidence, force state and calibration; `--output` refuses to overwrite existing reports.
 
-Scanning and reconnaissance do not send exploit, memory-exhaustion or command-execution payloads; only the explicit `exploit` and `connect` modes execute the chain and retain their destructive-command denylist.
+Scanning and reconnaissance do not send exploit, memory-exhaustion or command-execution payloads; only the explicit `exploit` and `connect` modes execute the chain.
 
 ## Validation
 
