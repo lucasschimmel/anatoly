@@ -8,7 +8,7 @@ repository = "https://github.com/lucasschimmel/anatoly"
 readme = "README.md"
 keywords = ["php", "security", "cli", "scanner"]
 categories = ["command-line-utilities"]
-include = ["/src/**", "/tests/**", "/examples/**", "/fingerprints/**", "/docs/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE", "/wordlists/anatoly-core.txt"]
+include = ["/src/**", "/tests/**", "/examples/**", "/fingerprints/**", "/docs/**", "/lab/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE", "/wordlists/anatoly-core.txt"]
 description = "Evidence-based PHP2Shell exposure assessment for PHP applications"
 
 [dependencies]

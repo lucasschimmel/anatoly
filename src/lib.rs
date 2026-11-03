@@ -2,6 +2,7 @@ pub mod analysis;
 pub mod assessment;
 mod discovery;
 mod evidence_view;
+pub mod exploit;
 pub mod fingerprint;
 mod fingerprint_declarations;
 mod fingerprint_inventory;

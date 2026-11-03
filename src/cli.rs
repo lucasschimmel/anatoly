@@ -38,7 +38,7 @@ pub enum Command {
     /// Inspect response security headers and recognized session cookies.
     Headers(Box<ScanArgs>),
     /// Prove command execution in the explicit loopback-only Docker lab.
-    Exploit(LabArgs),
+    Exploit(ExploitArgs),
     /// Run an allowlisted command in the explicit loopback-only Docker lab.
     Connect(ConnectArgs),
     /// Repeat bounded scans and display only meaningful changes.
@@ -84,7 +84,7 @@ pub struct TargetArgs {
 }
 
 #[derive(Args)]
-pub struct LabArgs {
+pub struct ExploitArgs {
     #[command(flatten)]
     pub input: TargetArgs,
     /// Required acknowledgement that execution is limited to the local Docker lab.
@@ -98,7 +98,7 @@ pub struct LabArgs {
 #[derive(Args)]
 pub struct ConnectArgs {
     #[command(flatten)]
-    pub lab: LabArgs,
+    pub exploit: ExploitArgs,
     /// Run one allowlisted command and exit instead of opening the local prompt.
     #[arg(long)]
     pub command: Option<String>,

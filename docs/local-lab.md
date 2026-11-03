@@ -4,6 +4,8 @@ This lab executes the real PHP2Shell chain against **PHP 8.4.26 / Apache prefork
 
 The `php-8.4.26-bookworm-amd64` profile verifies heap and `libphp` leaks, then requires fresh command output inside `/out/p1` before reporting `PROOF`. The proof script is written with LF line endings so it runs cleanly from both Windows and Linux hosts.
 
+The execution engine is part of the public `anatoly::exploit` library module. CLI orchestration lives in `live_modes.rs` alongside the other live modes; Docker lifecycle management remains isolated in `lab/local_lab.py`.
+
 ## Prerequisites
 
 - Docker Desktop (or Docker Engine) running and reachable (`docker version`);
@@ -48,7 +50,7 @@ Expected output:
 ```text
 [+] W3 attempt 1
 PROOF: uid=33(www-data) gid=33(www-data) groups=33(www-data)
-│ ANATOLY / LOCAL LAB PROOF
+│ ANATOLY / PHP2SHELL PROOF
 │ status               real_rce_proven
 ```
 

@@ -1,7 +1,6 @@
 mod cli;
 mod cli_inputs;
 mod exports;
-mod lab;
 mod live_modes;
 mod offline;
 mod runner;
@@ -92,8 +91,8 @@ fn run() -> Result<u8> {
         Some(Command::Scan(args)) => return runner::run(*args, cli.json, &ui),
         Some(Command::Exposure(args)) => return live_modes::exposure(*args, cli.json, &ui),
         Some(Command::Headers(args)) => return live_modes::headers(*args, cli.json, &ui),
-        Some(Command::Exploit(args)) => return lab::exploit(args, cli.json, &ui),
-        Some(Command::Connect(args)) => return lab::connect(args, cli.json, &ui),
+        Some(Command::Exploit(args)) => return live_modes::exploit(args, cli.json, &ui),
+        Some(Command::Connect(args)) => return live_modes::connect(args, cli.json, &ui),
         Some(Command::Doctor(args)) => return live_modes::doctor(*args, cli.json, &ui),
         Some(Command::Watch(args)) => return live_modes::watch(*args, cli.json, &ui),
         Some(Command::Compare {
