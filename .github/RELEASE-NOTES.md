@@ -38,6 +38,6 @@ sh /tmp/anatoly-install.sh --version v0.4.0 --bin-dir "$HOME/.local/bin" --force
 
 Keep the same `--bin-dir` as your existing installation. Omit `--force` for a new installation. The installer verifies the archive checksum, preserves existing binaries without `--force`, and does not change shell configuration or scan targets.
 
-See [FINGERPRINTS.md](https://github.com/lucasschimmel/anatoly/blob/v0.4.0/FINGERPRINTS.md) for custom catalogs and [RECONNAISSANCE.md](https://github.com/lucasschimmel/anatoly/blob/v0.4.0/RECONNAISSANCE.md) for recognition limits. [EXEGOL.md](https://github.com/lucasschimmel/anatoly/blob/v0.4.0/EXEGOL.md) describes persistent container installation; this independent release does not add Anatoly to Exegol's official images.
+See [docs/detection-and-fingerprints.md](https://github.com/lucasschimmel/anatoly/blob/v0.4.0/docs/detection-and-fingerprints.md) for custom catalogs and recognition limits. [docs/exegol.md](https://github.com/lucasschimmel/anatoly/blob/v0.4.0/docs/exegol.md) describes persistent container installation; this independent release does not add Anatoly to Exegol's official images.
 
 The PHP advisory policy remains dated 2026-10-31. Native CI and release jobs run formatting, Clippy and platform tests; Linux jobs also validate real loopback HTTPS and installer behavior.
