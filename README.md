@@ -17,7 +17,7 @@ CLI and library for the explicit loopback-only Docker lab. The existing scanner
 selects an exact verified build profile; `--force` can override only HTTP-verdict
 limitations, never version, profile, target or command safeguards. Eighteen Apache
 amd64 profiles cover PHP 8.4.10–8.4.26 and 8.5.0–8.5.11 where verified profiles exist.
-Execution requires `--lab` and fresh command output; affected versions without a
+Execution requires fresh command output; affected versions without a
 verified profile are explicitly refused. See [Local lab guide](docs/local-lab.md).
 
 New in **0.4.0**: bounded, explainable version hypotheses when exact versions are
@@ -40,8 +40,8 @@ The Rust `exploit` and `connect` commands run the real PHP2Shell chain against
 an exact Apache/mod_php Docker lab published only on `127.0.0.1:18108`. Select the
 version with `python lab/local_lab.py up --php-version 8.5.0` (default: 8.4.26).
 The scanner identifies the running version and Anatoly verifies its image identity
-and symbols before execution. They require `--lab`, reject every other target and
-accept success only after fresh container output. `connect` supports a small read-only
+and symbols before execution. They reject every other target and accept success
+only after fresh container output. `connect` supports a small read-only
 allowlist rather than a persistent shell. The Python controller is used only to start
 and remove the lab. See [Local lab guide](docs/local-lab.md) for the verified-profile
 matrix, `--force`, setup, verification and teardown.

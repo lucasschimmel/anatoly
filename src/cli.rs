@@ -88,15 +88,12 @@ pub struct ExploitArgs {
     /// Reuse the scanner target, transport, discovery, scope and output options.
     #[command(flatten)]
     pub scan: ScanArgs,
-    /// Required acknowledgement that execution is limited to the local Docker lab.
-    #[arg(long, required = true, help_heading = "Local lab")]
-    pub lab: bool,
     /// Attempt the exact detected profile despite an inconclusive HTTP verdict.
     /// Never bypasses version, profile, target or command safeguards.
-    #[arg(long, help_heading = "Local lab")]
+    #[arg(long, help_heading = "Execution")]
     pub force: bool,
     /// Project directory containing lab/reproducer.py and the mounted lab/out directory.
-    #[arg(long, default_value = ".", help_heading = "Local lab")]
+    #[arg(long, default_value = ".", help_heading = "Execution")]
     pub lab_dir: PathBuf,
 }
 

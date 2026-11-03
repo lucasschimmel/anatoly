@@ -4,7 +4,7 @@ Anatoly 0.5.0 integrates real `exploit` and `connect` execution into the Rust CL
 - Reuse the existing scanner and its CLI options to identify one exact stable affected version and select its verified profile. Never substitute another patch from the same branch.
 - Embed 18 maintainer-verified Apache bookworm amd64 profiles covering PHP 8.4.10/11/19/20/25/26 and 8.5.0–8.5.11, with `carrier` and `vessel` geometries. Affected builds without a verified profile, including 8.3.35, are refused rather than presented as RCE-compatible.
 - Verify the running version, image identity and exact libphp symbols before every attempt. Use `--force` only for HTTP-verdict limitations; it cannot bypass version, profile, target or command safeguards.
-- Require `--lab` and the exact `http://127.0.0.1:18108/index.php` endpoint (or `/`). Other targets are rejected before any HTTP request.
+- Require the exact `http://127.0.0.1:18108/index.php` endpoint (or `/`) directly, without a separate mode flag. Other targets are rejected before any HTTP request.
 - Prove `exploit` with fresh `id` output from the container. A crash, heap leak or library leak alone is never reported as RCE.
 - Use `connect` interactively or with `--command`, limited to `id`, `whoami`, `pwd`, `hostname`, `php -v` and `uname -a`; no persistent or arbitrary shell is provided.
 - Select the project containing `lab/` at execution time with `--lab-dir`. JSON reports include scan evidence, force state and calibration; `--output` refuses to overwrite existing reports.

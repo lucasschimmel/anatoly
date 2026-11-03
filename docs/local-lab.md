@@ -37,8 +37,7 @@ The lab directory is resolved at runtime. When invoking Anatoly outside the proj
 - Published exclusively on `127.0.0.1:18108`;
 - Dedicated Docker bridge network created on `up` and removed on `down`;
 - `no-new-privileges:true`, memory limit (`1g`) and PID limit (`64`);
-- Explicit `--lab` required;
-- Only `http://127.0.0.1:18108/index.php` (or `/`) is accepted;
+- Only `http://127.0.0.1:18108/index.php` (or `/`) is accepted, without a separate mode flag;
 - Commands limited to `id`, `whoami`, `pwd`, `hostname`, `php -v`, and `uname -a`;
 - Configuration files mounted read-only; only disposable `lab/out/` receives proof files;
 - No persistent shell: each command reruns the full chain and requires fresh proof.
@@ -64,13 +63,13 @@ The endpoint remains `http://127.0.0.1:18108/index.php` for every version.
 ### 2. Scan and prove RCE with `exploit`
 
 ```powershell
-cargo run -- --no-banner exploit -u http://127.0.0.1:18108/index.php --lab
+cargo run -- --no-banner exploit -u http://127.0.0.1:18108/index.php
 ```
 
 The normal scan runs first. Scanner transport/discovery options keep their usual meaning, for example:
 
 ```powershell
-cargo run -- --no-banner exploit -u http://127.0.0.1:18108/index.php --lab --samples 1 --no-discover --output proof.json
+cargo run -- --no-banner exploit -u http://127.0.0.1:18108/index.php --samples 1 --no-discover --output proof.json
 ```
 
 Expected proof fields include:
@@ -88,13 +87,13 @@ proof                uid=33(www-data) gid=33(www-data) groups=33(www-data)
 Single command:
 
 ```powershell
-cargo run -- --no-banner connect -u http://127.0.0.1:18108/index.php --lab --command whoami
+cargo run -- --no-banner connect -u http://127.0.0.1:18108/index.php --command whoami
 ```
 
 Interactive prompt:
 
 ```powershell
-cargo run -- --no-banner connect -u http://127.0.0.1:18108/index.php --lab
+cargo run -- --no-banner connect -u http://127.0.0.1:18108/index.php
 ```
 
 The scanner and profile selection run once for the interactive session. Every command still reruns the chain and requires fresh proof. Available commands: `id`, `whoami`, `pwd`, `hostname`, `php -v`, `uname -a`, or `exit`.
@@ -104,7 +103,7 @@ The scanner and profile selection run once for the interactive session. Every co
 By default, execution requires a `potentially_affected` scan verdict. If the scanner identifies an exact stable affected version and a verified profile but the overall HTTP verdict is inconclusive, `--force` permits the attempt:
 
 ```powershell
-cargo run -- --no-banner exploit -u http://127.0.0.1:18108/index.php --lab --force
+cargo run -- --no-banner exploit -u http://127.0.0.1:18108/index.php --force
 ```
 
 `--force` **never** bypasses target or command restrictions and never permits an unknown, conflicting, fixed, prerelease, unsupported or unreviewed version. It also cannot manufacture a missing RCE profile or select another build.

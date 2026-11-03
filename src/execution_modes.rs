@@ -71,7 +71,7 @@ fn run_exploit(
 
 fn execution_target(args: &ExploitArgs) -> Result<ExecutionTarget> {
     let targets = runner::target_inputs(&args.scan.input, 1)?;
-    ExecutionTarget::from_targets(&targets, args.lab)
+    ExecutionTarget::from_targets(&targets)
 }
 
 fn prepare(args: &ExploitArgs, json: bool, ui: &Ui) -> Result<PreparedExecution> {

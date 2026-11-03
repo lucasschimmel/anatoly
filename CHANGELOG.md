@@ -7,7 +7,7 @@
 - Embed 18 maintainer-verified official Apache bookworm amd64 profiles: PHP 8.4.10/11/19/20/25/26 and PHP 8.5.0–8.5.11, with both `carrier` and `vessel` stage-3 geometries and preserved MIT attribution.
 - Verify running PHP version, image identity and exact libphp symbols before every attempt; distinguish affected versions from RCE-calibrated builds and refuse missing profiles rather than claiming compatibility.
 - Add `--force` for HTTP-verdict limitations only. Unknown, conflicting, fixed, prerelease, unsupported and unprofiled versions remain refused, as do non-loopback targets and arbitrary commands.
-- Restrict execution to the explicit `--lab` mode and exact loopback endpoint `http://127.0.0.1:18108/index.php`; require fresh command output instead of treating a crash or memory leak as RCE.
+- Restrict execution to the exact loopback endpoint `http://127.0.0.1:18108/index.php` without a separate mode flag; require fresh command output instead of treating a crash or memory leak as RCE.
 - Add single-command and interactive `connect` workflows limited to `id`, `whoami`, `pwd`, `hostname`, `php -v` and `uname -a`; scan once per interactive session and require fresh proof per command.
 - Add `--lab-dir` for runtime lab resolution, structured scan/calibration evidence in JSON reports and no-overwrite `--output` exports; keep the library free of terminal output.
 - Package the multi-version Apache/mod_php Docker lab and documentation with release archives; verify 8.4.10, 8.4.26 and 8.5.0 end-to-end locally and test the 8.3.35 refusal with `--force`.

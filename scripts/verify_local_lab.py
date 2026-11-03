@@ -38,9 +38,9 @@ run([cargo, "build", "--bin", "anatoly"])
 try:
     run([sys.executable, LAB, "up", "--php-version", args.php_version])
     target = "http://127.0.0.1:18108/index.php"
-    run([BINARY, "--no-banner", "exploit", "-u", target, "--lab"], timeout=650)
+    run([BINARY, "--no-banner", "exploit", "-u", target], timeout=650)
     run(
-        [BINARY, "--no-banner", "connect", "-u", target, "--lab", "--command", "whoami"],
+        [BINARY, "--no-banner", "connect", "-u", target, "--command", "whoami"],
         timeout=650,
     )
     print(
