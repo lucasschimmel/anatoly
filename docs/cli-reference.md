@@ -1,6 +1,6 @@
 # CLI Reference: Modes, Flags, Profiles & Audit Controls
 
-All live modes reuse scan scope, TLS validation, proxy, pacing and per-target budgets. They send bounded GET requests only (except `exploit` and `connect`, which target only the loopback Docker lab — see [local-lab.md](local-lab.md)). Offline modes never contact targets. Public evidence cannot certify the running PHP binary or the absence of vulnerabilities.
+All live modes reuse scan scope, TLS validation, proxy, pacing and per-target budgets. They send bounded GET requests only, except `exploit` and `connect`, which execute the real chain against one exact-profile target (see [local-lab.md](local-lab.md)). Offline modes never contact targets. Public evidence cannot certify the running PHP binary or the absence of vulnerabilities.
 
 ## Operating Modes
 
@@ -9,8 +9,8 @@ All live modes reuse scan scope, TLS validation, proxy, pacing and per-target bu
 | `scan` | Public version evidence and PHP2Shell assessment | Explicit declarations and hypotheses stay separate. |
 | `exposure` | Extended public information-disclosure discovery | Enables the deep path set, with a default budget of 32 requests per target. Rejects `quick`/`--no-discover`. Reports diagnostics, Composer hints, error disclosures and version proofs through the common scan engine. |
 | `headers` | Response header and recognized PHP cookie audit | One response chain per input URL. Checks HSTS, CSP presence, nosniff, framing declarations, Referrer-Policy and cookie attributes. No policy-strength or security certification. |
-| `exploit` | Prove command execution in the loopback Docker lab | Requires `http://127.0.0.1:18108/index.php`. Runs `id` and requires fresh proof output. |
-| `connect` | Run an allowlisted command in the loopback Docker lab | Uses the same loopback-only target restriction. Supports `id`, `whoami`, `pwd`, `hostname`, `php -v`, `uname -a`. |
+| `exploit` | Prove command execution against an exact supported target | Accepts local or remote hosts on HTTP port 18108 with `/index.php` (or `/`). Runs `id` and requires fresh proof output. |
+| `connect` | Run an allowlisted command against an exact supported target | Uses the same endpoint validation. Supports `id`, `whoami`, `pwd`, `hostname`, `php -v`, `uname -a`. |
 | `watch` | Repeated scans with change events | Default: two rounds, 300 seconds between completed rounds. Shows baseline, then changes only. No overlapping rounds. Ctrl+C stops the process. |
 | `compare` | Compare saved aggregate reports (offline) | Added/removed targets, declarations, evidence, coverage and advisory-snapshot changes. |
 | `report` | Generate standalone HTML, CSV, or SARIF (offline) | Escaped data, no scripts or remote assets; existing output files refused. |

@@ -6,14 +6,14 @@
 
 A Rust CLI for public PHP version evidence, PHP2Shell exposure assessment and
 response-hardening observations. Every conclusion includes its evidence and limits.
-Real command execution is restricted to the explicit loopback-only Docker lab;
+Real command execution is restricted to the exact-profile execution workflow;
 the scanner provides no security certification.
 
 Commands: `scan`, `exposure`, `headers`, `exploit`, `connect`, `watch`, `compare`,
 `report`, `policy`, `explain`, `doctor`, `version`, `builds` and `credits`.
 
 New in **0.5.0**: real `exploit` and `connect` commands integrated into the Rust
-CLI and library for the explicit loopback-only Docker lab. The existing scanner
+CLI and library for the exact-profile execution workflow. The existing scanner
 selects an exact verified build profile; `--force` can override only HTTP-verdict
 limitations, never version, profile, target or command safeguards. Eighteen Apache
 amd64 profiles cover PHP 8.4.10–8.4.26 and 8.5.0–8.5.11 where verified profiles exist.
@@ -40,8 +40,8 @@ The Rust `exploit` and `connect` commands run the real PHP2Shell chain against
 an exact Apache/mod_php Docker lab published only on `127.0.0.1:18108`. Select the
 version with `python lab/local_lab.py up --php-version 8.5.0` (default: 8.4.26).
 The scanner identifies the running version and Anatoly verifies its image identity
-and symbols before execution. They reject every other target and accept success
-only after fresh container output. `connect` supports a small read-only
+and symbols before execution. They accept local or remote host addresses on the
+required endpoint and accept success only after fresh container output. `connect` supports a small read-only
 allowlist rather than a persistent shell. The Python controller is used only to start
 and remove the lab. See [Local lab guide](docs/local-lab.md) for the verified-profile
 matrix, `--force`, setup, verification and teardown.

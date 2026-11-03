@@ -37,7 +37,7 @@ The lab directory is resolved at runtime. When invoking Anatoly outside the proj
 - Published exclusively on `127.0.0.1:18108`;
 - Dedicated Docker bridge network created on `up` and removed on `down`;
 - `no-new-privileges:true`, memory limit (`1g`) and PID limit (`64`);
-- Only `http://127.0.0.1:18108/index.php` (or `/`) is accepted, without a separate mode flag;
+- Local and remote host addresses are accepted on HTTP port 18108 with `/index.php` (or `/`), without a separate mode flag;
 - Commands limited to `id`, `whoami`, `pwd`, `hostname`, `php -v`, and `uname -a`;
 - Configuration files mounted read-only; only disposable `lab/out/` receives proof files;
 - No persistent shell: each command reruns the full chain and requires fresh proof.

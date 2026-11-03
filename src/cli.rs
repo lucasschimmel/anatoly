@@ -37,9 +37,9 @@ pub enum Command {
     Exposure(Box<ScanArgs>),
     /// Inspect response security headers and recognized session cookies.
     Headers(Box<ScanArgs>),
-    /// Prove command execution in the explicit loopback-only Docker lab.
+    /// Prove command execution against an exact supported PHP target.
     Exploit(ExploitArgs),
-    /// Run an allowlisted command in the explicit loopback-only Docker lab.
+    /// Run an allowlisted command against an exact supported PHP target.
     Connect(ConnectArgs),
     /// Repeat bounded scans and display only meaningful changes.
     Watch(Box<WatchArgs>),

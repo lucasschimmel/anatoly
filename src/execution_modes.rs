@@ -119,7 +119,7 @@ fn prepare(args: &ExploitArgs, json: bool, ui: &Ui) -> Result<PreparedExecution>
 fn interactive(args: ExploitArgs, ui: &Ui) -> Result<u8> {
     let prepared = prepare(&args, false, ui)?;
     ui.details(
-        "ANATOLY / LOCAL LAB SESSION",
+        "ANATOLY / PHP2SHELL SESSION",
         &serde_json::json!({
             "target": prepared.target.display(),
             "php_version": prepared.profile.php_version,
