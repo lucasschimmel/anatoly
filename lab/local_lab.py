@@ -102,7 +102,7 @@ def lab_up(version: str = "8.4.26") -> None:
         raise LabError("Lab Docker configuration files are missing in lab/docker/")
     source_image = PINNED_IMAGES.get(version, f"php:{version}-apache")
     image = f"anatoly-php2shell:{version}"
-    for proof_name in ("p", "s", "o", "x"):
+    for proof_name in ("p", "s", "o", "x", "f", "q", "r"):
         (DOCKER_DIR / "webroot" / proof_name).unlink(missing_ok=True)
     run_process([docker, "rm", "--force", CONTAINER], timeout=20, check=False)
     run_process([docker, "network", "rm", NETWORK], timeout=20, check=False)

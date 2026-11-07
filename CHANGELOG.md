@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — 2026-11-07
+
+- Add a persistent target-side `sh` process for interactive `connect`, preserving the working directory, variables and environment between commands.
+- Add a cwd-aware prompt, direct remote output and exit-status reporting, plus local `help`, `history`, `clear`, `exit` and `quit` commands.
+- Verify fresh command completion over HTTP and close the remote shell and its FIFO/output resources on exit, EOF or normal client teardown; no TTY or reattachment is claimed.
+- Validate the complete persistent flow on PHP 8.4.26 with a second command observing `/tmp` and a variable set by the first command, followed by verified resource cleanup.
+
 ## 0.5.1 — 2026-11-07
 
 - Make `exploit` and `connect` fully native and standalone: no Docker, Python, `lab/`, `offsets.py`, `reproducer.py`, helper process or shared `/out` runtime dependency.
