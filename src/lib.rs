@@ -7,6 +7,7 @@ mod exploit_payload;
 mod exploit_profile;
 mod exploit_proof;
 mod exploit_report;
+pub mod exploit_session;
 mod exploit_transport;
 pub mod fingerprint;
 mod fingerprint_declarations;

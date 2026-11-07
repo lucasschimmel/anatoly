@@ -48,7 +48,7 @@ Docker and Python are used only to build, start and remove the optional local ta
 - Any valid absolute HTTP(S) URL is accepted through the shared scanner validation, without lab-specific host, port, path or query restrictions;
 - Commands are passed to the shell without an allowlist or denylist;
 - PHP and Apache configuration files are mounted read-only; the disposable webroot is writable so HTTP proof files can be created and removed;
-- No persistent shell: each command reruns the full chain and requires fresh proof.
+- Interactive `connect` uses one target-side `sh` process and preserves its working directory and environment; it provides no TTY or reattachment after closure.
 
 ## Walkthrough
 
@@ -118,7 +118,17 @@ Interactive prompt:
 anatoly --no-banner connect -u http://127.0.0.1:18108/index.php
 ```
 
-The scanner and profile selection run once for the interactive session. Every command still reruns the chain and requires fresh proof. Type `exit` to stop.
+The scanner and profile selection run once. A single target-side `sh` process then preserves the working directory, variables and environment between commands. Every command still uses the native chain and requires a fresh completion marker. The prompt displays the current directory.
+
+```text
+anatoly:~$ cd /tmp; DEMO=ok
+anatoly:/tmp$ pwd; echo $DEMO
+/tmp
+ok
+anatoly:/tmp$ exit
+```
+
+Local commands are `help`, `history`, `clear`, `exit` and `quit`. Remote output and nonzero exit statuses are displayed directly. This is a persistent shell, not a TTY: terminal-only interactive programs and reattachment after closure are unsupported. `exit`/`quit`, EOF and normal client teardown close the remote shell and remove its FIFO/output resources.
 
 ### 4. Understand `--force`
 
@@ -144,10 +154,10 @@ Run unit and CLI guardrail tests without Docker:
 cargo test --locked
 ```
 
-Run the real end-to-end flow. The script builds Anatoly, starts the selected container, copies only the executable into a temporary directory and runs `exploit` and `connect --command whoami` from there before teardown. `--composed` additionally verifies the multi-stage composed-command transport:
+Run the real end-to-end flow. The script builds Anatoly, starts the selected container, copies only the executable into a temporary directory and runs `exploit` and `connect --command whoami` from there before teardown. `--composed` additionally verifies the multi-stage composed-command transport. `--persistent` verifies that cwd and a variable survive into a second interactive command and that the session closes cleanly:
 
 ```powershell
-python scripts/verify_local_lab.py --php-version 8.4.26 --composed
+python scripts/verify_local_lab.py --php-version 8.4.26 --composed --persistent
 python scripts/verify_local_lab.py --php-version 8.4.10
 python scripts/verify_local_lab.py --php-version 8.5.0
 ```
