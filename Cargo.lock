@@ -13,11 +13,12 @@ dependencies = [
 
 [[package]]
 name = "anatoly"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "base64",
  "clap",
+ "native-tls",
  "regex",
  "reqwest",
  "scraper",
