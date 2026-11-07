@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1 — 2026-11-07
+
+- Make `exploit` and `connect` fully native and standalone: no Docker, Python, `lab/`, `offsets.py`, `reproducer.py`, helper process or shared `/out` runtime dependency.
+- Embed exact offsets and heap geometry in the Rust binary; retain exact-version profile selection and existing execution safeguards.
+- Retrieve fresh command proofs over HTTP and support short and composed commands with concurrent, deadline-bounded native TCP/TLS transport.
+- Verify PHP 8.4.10, 8.4.26 and 8.5.0 end-to-end using only a copied binary, including composed commands and both stage-3 geometries.
+
 ## 0.5.0 — 2026-11-03
 
 - Integrate real `exploit` and `connect` execution into the Rust CLI and public `anatoly::exploit` library, with structured proofs, shared target validation, export preflight and terminal rendering.

@@ -7,9 +7,9 @@ Anatoly is an independent custom tool. No Rust compiler is needed for the releas
 Run these commands **inside your Exegol container**:
 
 ```sh
-curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.5.0/install.sh -o /tmp/anatoly-install.sh
+curl -fL https://github.com/lucasschimmel/anatoly/releases/download/v0.5.1/install.sh -o /tmp/anatoly-install.sh
 less /tmp/anatoly-install.sh
-sh /tmp/anatoly-install.sh --version v0.5.0 --bin-dir "$HOME/.local/bin"
+sh /tmp/anatoly-install.sh --version v0.5.1 --bin-dir "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 anatoly --version
 anatoly doctor https://app.example/ --no-proxy --json
@@ -17,12 +17,14 @@ anatoly doctor https://app.example/ --no-proxy --json
 
 The installer verifies the binary archive's SHA-256 before installation, runs only `--version` to check compatibility, and never scans a target or changes shell startup files. Existing binaries require explicit `--force` to replace.
 
+The installed binary is autonomous for `scan`, `exploit` and `connect`: it does not invoke Docker or Python and does not read `lab/`, `offsets.py`, `reproducer.py` or a shared `/out` directory. Exact build profiles and offsets are embedded. Execution proof is retrieved over HTTP, which requires the target script's directory to be writable by PHP. Docker and Python are needed only to run the optional local test target from a source checkout.
+
 ## Persist Across Containers (`/opt/my-resources`)
 
 Exegol mounts your configured host `my-resources` directory inside containers at `/opt/my-resources`. Install the binary there to share it across containers of the same CPU architecture:
 
 ```sh
-sh /tmp/anatoly-install.sh --version v0.5.0 --bin-dir /opt/my-resources/bin
+sh /tmp/anatoly-install.sh --version v0.5.1 --bin-dir /opt/my-resources/bin
 export PATH="/opt/my-resources/bin:$PATH"
 anatoly --version
 ```
@@ -30,7 +32,7 @@ anatoly --version
 To upgrade an existing installation, pass `--force`:
 
 ```sh
-sh /tmp/anatoly-install.sh --version v0.5.0 --bin-dir /opt/my-resources/bin --force
+sh /tmp/anatoly-install.sh --version v0.5.1 --bin-dir /opt/my-resources/bin --force
 ```
 
 ## HTB / Lab Workflow

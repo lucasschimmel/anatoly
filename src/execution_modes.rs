@@ -85,7 +85,6 @@ fn prepare(args: &ExploitArgs, json: bool, ui: &Ui) -> Result<PreparedExecution>
     // Target, output and runtime safeguards run before the first HTTP request.
     let target = execution_target(args)?;
     exports::preflight(&[args.scan.output.as_deref()])?;
-    Php2ShellBackend::validate_root(&args.lab_dir)?;
     let (limits, options) = runner::configure(&args.scan)?;
     runner::validate_scope(&[target.as_str().to_owned()], &options)?;
 
@@ -99,7 +98,7 @@ fn prepare(args: &ExploitArgs, json: bool, ui: &Ui) -> Result<PreparedExecution>
         &scan.verdict,
         args.force,
     )?;
-    let backend = Php2ShellBackend::with_profile(&args.lab_dir, profile.clone())?;
+    let backend = Php2ShellBackend::with_profile(profile.clone())?;
     Ok(PreparedExecution {
         target,
         backend,
@@ -125,7 +124,7 @@ fn interactive(args: ExploitArgs, ui: &Ui) -> Result<u8> {
     );
     let stdin = io::stdin();
     loop {
-        print!("anatoly-docker$ ");
+        print!("anatoly$ ");
         io::stdout().flush()?;
         let mut input = String::new();
         if stdin.read_line(&mut input)? == 0 {

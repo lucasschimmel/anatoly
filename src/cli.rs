@@ -92,9 +92,6 @@ pub struct ExploitArgs {
     /// Never bypasses version, profile, target or command safeguards.
     #[arg(long, help_heading = "Execution")]
     pub force: bool,
-    /// Project directory containing lab/reproducer.py and the mounted lab/out directory.
-    #[arg(long, default_value = ".", help_heading = "Execution")]
-    pub lab_dir: PathBuf,
 }
 
 #[derive(Args)]

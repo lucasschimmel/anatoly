@@ -20,7 +20,6 @@ from urllib.request import urlopen
 LAB_DIR = Path(__file__).resolve().parent
 ROOT = LAB_DIR.parent
 DOCKER_DIR = LAB_DIR / "docker"
-OUT = LAB_DIR / "out"
 DEFAULT_TARGET = "http://127.0.0.1:18108/index.php"
 CONTAINER = "anatoly-php2shell-lab"
 NETWORK = "anatoly-php2shell-net"
@@ -103,9 +102,8 @@ def lab_up(version: str = "8.4.26") -> None:
         raise LabError("Lab Docker configuration files are missing in lab/docker/")
     source_image = PINNED_IMAGES.get(version, f"php:{version}-apache")
     image = f"anatoly-php2shell:{version}"
-    OUT.mkdir(parents=True, exist_ok=True)
-    for artifact in (OUT / "p1", OUT / "x"):
-        artifact.unlink(missing_ok=True)
+    for proof_name in ("p", "s", "o", "x"):
+        (DOCKER_DIR / "webroot" / proof_name).unlink(missing_ok=True)
     run_process([docker, "rm", "--force", CONTAINER], timeout=20, check=False)
     run_process([docker, "network", "rm", NETWORK], timeout=20, check=False)
     print(f"[*] Building PHP {version} Apache from {source_image}…", flush=True)
@@ -144,13 +142,11 @@ def lab_up(version: str = "8.4.26") -> None:
             "--memory",
             "1g",
             "--volume",
-            f"{DOCKER_DIR / 'webroot'}:/var/www/html:ro",
+            f"{DOCKER_DIR / 'webroot'}:/var/www/html",
             "--volume",
             f"{DOCKER_DIR / 'php.ini'}:/usr/local/etc/php/conf.d/zz-lab.ini:ro",
             "--volume",
             f"{DOCKER_DIR / 'apache.conf'}:/etc/apache2/conf-enabled/zz-lab.conf:ro",
-            "--volume",
-            f"{OUT}:/out",
             image,
         ],
         timeout=30,
