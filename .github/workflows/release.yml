@@ -58,9 +58,9 @@ jobs:
           cp "target/$TARGET/release/anatoly" stage/
           stage/anatoly --version
           stage/anatoly doctor https://app.example/ --no-proxy --json | python3 -c 'import json,sys; assert json.load(sys.stdin)["network_requests_sent"]==0'
-          cp LICENSE README.md FLAGS.md MODES.md OFFLINE-MODES.md PUBLIC-DETECTION.md EXEGOL.md AUDIT-CONTROLS.md FINGERPRINTS.md RECONNAISSANCE.md stage/
-          cp -R wordlists fingerprints stage/
-          tar -czf "dist/anatoly-$RELEASE_TAG-$TARGET.tar.gz" -C stage anatoly LICENSE README.md FLAGS.md MODES.md OFFLINE-MODES.md PUBLIC-DETECTION.md EXEGOL.md AUDIT-CONTROLS.md FINGERPRINTS.md RECONNAISSANCE.md wordlists fingerprints
+          cp LICENSE NOTICE README.md stage/
+          cp -R docs wordlists fingerprints lab stage/
+          tar -czf "dist/anatoly-$RELEASE_TAG-$TARGET.tar.gz" -C stage anatoly LICENSE NOTICE README.md docs wordlists fingerprints lab
       - name: Package Windows binary
         if: runner.os == 'Windows'
         shell: pwsh
@@ -73,8 +73,8 @@ jobs:
           & stage/anatoly.exe --version
           $result = & stage/anatoly.exe doctor https://app.example/ --no-proxy --json | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $result.network_requests_sent -ne 0) { throw 'Release smoke failed' }
-          Copy-Item LICENSE,README.md,FLAGS.md,MODES.md,OFFLINE-MODES.md,PUBLIC-DETECTION.md,EXEGOL.md,AUDIT-CONTROLS.md,FINGERPRINTS.md,RECONNAISSANCE.md stage/
-          Copy-Item wordlists,fingerprints -Destination stage/ -Recurse
+          Copy-Item LICENSE,NOTICE,README.md stage/
+          Copy-Item docs,wordlists,fingerprints,lab -Destination stage/ -Recurse
           Compress-Archive -Path stage/* -DestinationPath "dist/anatoly-$env:RELEASE_TAG-$env:TARGET.zip"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

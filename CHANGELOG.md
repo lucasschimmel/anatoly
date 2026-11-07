@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 — 2026-11-03
+
+- Integrate real `exploit` and `connect` execution into the Rust CLI and public `anatoly::exploit` library, with structured proofs, shared target validation, export preflight and terminal rendering.
+- Reuse the existing scanner and `ScanArgs` before execution; select only the exact stable affected version and never substitute a nearby build profile.
+- Embed 18 maintainer-verified official Apache bookworm amd64 profiles: PHP 8.4.10/11/19/20/25/26 and PHP 8.5.0–8.5.11, with both `carrier` and `vessel` stage-3 geometries and preserved MIT attribution.
+- Verify running PHP version, image identity and exact libphp symbols before every attempt; distinguish affected versions from RCE-calibrated builds and refuse missing profiles rather than claiming compatibility.
+- Add `--force` for HTTP-verdict limitations only. Unknown, conflicting, fixed, prerelease, unsupported and unprofiled versions remain refused.
+- Accept any valid absolute HTTP(S) URL through the shared scanner validation, without a separate mode flag or lab-specific host/port/path restrictions; require fresh command output instead of treating a crash or memory leak as RCE.
+- Add single-command and interactive `connect` workflows that pass commands verbatim to the shell without an allowlist or denylist; scan once per interactive session and require fresh proof per command.
+- Add `--lab-dir` for runtime lab resolution, structured scan/calibration evidence in JSON reports and no-overwrite `--output` exports; keep the library free of terminal output.
+- Package the multi-version Apache/mod_php Docker lab and documentation with release archives; verify 8.4.10, 8.4.26 and 8.5.0 end-to-end locally and test the 8.3.35 refusal with `--force`.
+
 ## 0.4.0 — 2026-11-02
 
 - Recognize conjunctive Laravel welcome-template generations and native exception-renderer families, retaining conditional version ranges when explicit declarations are hidden and preserving conflicting declarations across renderers.

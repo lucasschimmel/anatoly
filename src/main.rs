@@ -1,5 +1,6 @@
 mod cli;
 mod cli_inputs;
+mod execution_modes;
 mod exports;
 mod live_modes;
 mod offline;
@@ -68,21 +69,28 @@ fn run() -> Result<u8> {
         }
         Some(Command::Credits) => {
             let credits = serde_json::json!({
-                "implementation": "Anatoly: independent Rust implementation for Lucas Schimmel",
+                "implementation": "Anatoly Rust scanner and CLI for Lucas Schimmel",
                 "research": "Wiz Research / PHP2Shell; PHP maintainers and advisory authors",
                 "primary_sources": policy::ADVISORIES,
+                "execution_references": [
+                    "9bie/php2shell-bypass-aslr-exp: upstream HTTP chain and reproducer",
+                    "devploit/php2shell: verified build profiles and vessel geometry, MIT; see lab/PHP2SHELL-LICENSE"
+                ],
                 "local_reference_repositories": ["aarsaputra/php2shell", "cumakurt/php2shell-scan", "KtebhTeam/php2shell", "testerxma/php2shell"],
-                "note": "Reference repositories informed behavior analysis; no exploit code or artwork was copied. No upstream endorsement."
+                "note": "Reference repositories informed behavior analysis. Verified profile data and vessel implementation are adapted with attribution. No upstream endorsement."
             });
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&credits)?);
             } else {
-                println!("  ANATOLY / independent Rust implementation for Lucas Schimmel\n");
+                println!("  ANATOLY / Rust scanner and CLI for Lucas Schimmel\n");
                 println!(
                     "  Research: Wiz Research / PHP2Shell; PHP maintainers and advisory authors."
                 );
+                println!(
+                    "  Execution: 9bie upstream chain; devploit verified profiles and vessel geometry (MIT)."
+                );
                 println!("  References: aarsaputra, cumakurt, KtebhTeam, testerxma.");
-                println!("  No exploit code or artwork copied; no upstream endorsement.\n");
+                println!("  Adaptations are attributed; no upstream endorsement.\n");
                 for source in policy::ADVISORIES {
                     println!("  {source}");
                 }
@@ -91,6 +99,8 @@ fn run() -> Result<u8> {
         Some(Command::Scan(args)) => return runner::run(*args, cli.json, &ui),
         Some(Command::Exposure(args)) => return live_modes::exposure(*args, cli.json, &ui),
         Some(Command::Headers(args)) => return live_modes::headers(*args, cli.json, &ui),
+        Some(Command::Exploit(args)) => return execution_modes::exploit(args, cli.json, &ui),
+        Some(Command::Connect(args)) => return execution_modes::connect(args, cli.json, &ui),
         Some(Command::Doctor(args)) => return live_modes::doctor(*args, cli.json, &ui),
         Some(Command::Watch(args)) => return live_modes::watch(*args, cli.json, &ui),
         Some(Command::Compare {

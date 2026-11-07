@@ -1,11 +1,9 @@
 /target/
 /reports/
-/previews/
+/lab/out/
 /.codex/
 /.claude/
 /dist/
-/preview.png
-/banner-v2.png
 *.log
 __pycache__/
 *.pyc
